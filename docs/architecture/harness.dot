@@ -1,0 +1,24 @@
+digraph Harness {
+  graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.35", ranksep="0.5", fontname="Arial", label="MiniWiki — проектный харнесс Codex", labelloc=t, fontsize=22];
+  node [shape=box, style="rounded,filled", color="#5D5958", fillcolor="#F4F2F1", fontname="Arial", fontsize=15, margin="0.18,0.13"];
+  edge [color="#5D5958", fontname="Arial", fontsize=12];
+  user [label="Разработчик\nзадача и согласование", fillcolor="#622128", fontcolor="white"];
+  agents [label="AGENTS.md\nвход в инструкции"];
+  rules [label="docs/rules/\nстек · безопасность\nпроцесс · готовность"];
+  memory [label="docs/ai/\nPROJECT · PROGRESS\nDECISIONS · GOTCHAS"];
+  plan [label="План → согласование"];
+  skills [label=".agents/skills/\n6 процедур и ресурсы"];
+  work [label="Изменения в проекте\nсейчас: только харнесс"];
+  checks [label="Проверки\nсейчас: check_harness.py\nдалее: pytest · Ruff · браузер · Docker"];
+  evidence [label="docs/report/\nреальные кадры · логи · реестр\nнедоступный кадр → ожидаемое действие"];
+  next [label="Новый чат\nчтение памяти + сверка Git", fillcolor="#622128", fontcolor="white"];
+  user -> plan;
+  agents -> rules -> plan;
+  memory -> plan;
+  plan -> skills -> work -> checks;
+  checks -> work [label="ошибка"];
+  checks -> evidence [label="проверенный результат"];
+  evidence -> memory;
+  memory -> next;
+  next -> plan [style=dashed];
+}
