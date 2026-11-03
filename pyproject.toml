@@ -1,0 +1,40 @@
+[project]
+name = "miniwiki"
+version = "0.1.0"
+description = "A small, server-rendered course wiki"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.16,<2.0",
+    "argon2-cffi>=25.1,<26.0",
+    "fastapi>=0.121,<1.0",
+    "jinja2>=3.1,<4.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "pydantic-settings>=2.11,<3.0",
+    "sqlalchemy>=2.0,<2.1",
+    "uvicorn[standard]>=0.38,<1.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1.0",
+    "playwright>=1.56,<2.0",
+    "pytest>=8.4,<9.0",
+    "ruff>=0.14,<1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["scripts/check_harness.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
