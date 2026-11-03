@@ -129,3 +129,26 @@ Force-push/reset/rebase не выполнялись. Следом публику
 предупреждение; Ruff check PASS,55 files already formatted. Локальный лог:
 docs/report/logs/03-final-publish-checks.txt. Статус GitHub Actions после push
 без авторизации API недоступен(404); удалённый успех не объявляется.
+
+## Исправление CI после публикации —03.11.2026
+
+Пользователь предоставил реальный провал GitHub Actions:1 failed/12 passed.
+Причина воспроизведена: test_settings_load_required_values_from_environment
+не управлял POSTGRES_HOST/PORT и ожидал db:5432, тогда как CI задаёт localhost.
+_env_file=None отключает dotenv, но переменные процесса продолжают применяться.
+
+Исправлен только tests/test_config.py: параметризация проверяет значения по
+умолчанию после удаления HOST/PORT и явные localhost:55432 после их установки.
+Настройки приложения и workflow CI не менялись. Reviewer подтвердил корректную
+изоляцию через monkeypatch; Settings создаётся напрямую, кэш не затрагивается.
+
+Проверки: исходное падение воспроизведено с HOST=localhost; после исправления
+./scripts/check.sh all:14 passed/1 прежнее предупреждение, Ruff PASS/55 formatted.
+Полный uv run --locked python -m pytest -q с HOST=localhost, PORT=5432 также
+дал14 passed/1 warning. Для подключения к PostgreSQL локальный одноразовый
+контейнер использовал network_mode:service:db; тесты создавали/удаляли только
+свою UUID-базу. Рабочие данные не удалялись. Логи — локальный docs/report/logs/.
+
+Исправление и память отправляются двумя тематическими коммитами без scope
+в продолжение разрешённой публикации. Результат нового удалённого CI пока не
+подтверждён; локальный профиль воспроизводит нужные HOST/PORT. Этап4 не начат.

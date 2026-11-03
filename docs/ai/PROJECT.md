@@ -30,7 +30,8 @@ reader: только чтение public-страниц; фильтрация т
 ## Реализовано на этапе 3
 Python 3.12, uv.lock, Compose app/db, PostgreSQL 17 с volume, миграции users,
 /health, bootstrap admin с Argon2, русская адаптивная служебная оболочка, CI.
-Проверено: 13 pytest, Ruff, down/up persistence, health503/200, desktop/mobile.
+Проверено: 14 pytest (Compose и localhost-профиль CI), Ruff, down/up persistence,
+health503/200, desktop/mobile.
 Полной аутентификации и статей нет; дальнейшая архитектура ниже — план MVP.
 
 ## Архитектура приложения
