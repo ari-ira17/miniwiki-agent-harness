@@ -5,9 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 from app.config import get_settings
+from app.models import Base, User  # noqa: F401
 
 config = context.config
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
