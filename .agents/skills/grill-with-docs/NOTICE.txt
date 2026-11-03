@@ -1,0 +1,9 @@
+MiniWiki adaptation of grill-with-docs and its grilling and domain-modeling
+procedures from LinnetCodes/grill-me, commit 01ba2d0070575f9d4983b9033fc043406fac8e02.
+Copyright (c) 2026 LinnetCodes. Licensed under MIT; see LICENSE.txt.
+Modified: dependencies are integrated into one Codex procedure; decisions are
+recorded only after agreement in docs/ai/DECISIONS.md instead of domain_models/.
+The LinnetCodes repository identifies mattpocock/skills as its upstream.
+The separately inspected upstream license: Copyright (c) 2026 Matt Pocock,
+MIT; see LICENSE-upstream.txt. The exact upstream revision inherited by
+LinnetCodes is not established.

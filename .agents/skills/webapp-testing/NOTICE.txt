@@ -1,0 +1,5 @@
+MiniWiki adaptation of webapp-testing from anthropics/skills, commit
+fa0fa64bdc967915dc8399e803be67759e1e62b8.
+Copyright 2026 Anthropic, PBC. Licensed under Apache License 2.0; see LICENSE.txt.
+The SKILL.md has been modified for Codex and MiniWiki: external helper and examples
+were removed, and project-specific checks and evidence handling were added.

@@ -1,0 +1,5 @@
+MiniWiki adaptation of systematic-debugging from obra/superpowers, commit
+c74782ead66b8ded584d9b9cf64dcba95457f320.
+Copyright (c) 2025 Jesse Vincent. Licensed under MIT; see LICENSE.txt.
+Modified: compact local procedure replaces external subskills and references;
+examples that inspect environment variables and signing credentials are omitted.
