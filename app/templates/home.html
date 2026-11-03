@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Обзор · MiniWiki{% endblock %}
+
+{% block page_heading %}
+<section class="page-heading" aria-labelledby="welcome">
+  <div class="heading-inner">
+    <p class="eyebrow">УЧЕБНЫЙ ПРОЕКТ · NLP</p>
+    <h1 id="welcome">Добро пожаловать в MiniWiki</h1>
+    <p class="lead">Компактная wiki для создания и организации учебной документации.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<article class="article-card">
+  <section class="info-section" aria-labelledby="status">
+    <p class="section-kicker">ОБЗОР</p>
+    <h2 id="status">Текущий статус проекта</h2>
+    <p>Каркас приложения и базовое окружение подготовлены. Страницы курса и средства навигации появятся на следующих этапах.</p>
+  </section>
+
+  <section class="info-section" aria-labelledby="platform">
+    <p class="section-kicker">ПЛАТФОРМА</p>
+    <h2 id="platform">О платформе</h2>
+    <p>MiniWiki объединит учебные материалы в иерархическую базу знаний с поиском, тегами и безопасным редактором Markdown.</p>
+    <div class="feature-grid" aria-label="Основы платформы">
+      <div class="feature-card">
+        <span class="feature-index">01</span>
+        <h3>Структура</h3>
+        <p>Материалы курса будут собраны по разделам.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-index">02</span>
+        <h3>Доступ</h3>
+        <p>Роли пользователей появятся после настройки входа.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="prototype-notice" aria-labelledby="local-notice-title">
+    <span class="notice-icon" aria-hidden="true">i</span>
+    <div>
+      <h2 id="local-notice-title">Локальный прототип</h2>
+      <p>Начальный администратор подготовлен для локальной разработки. Вход, проверка прав и безопасная публикация ещё не реализованы. Не размещайте сервис в открытой сети.</p>
+    </div>
+  </section>
+</article>
+{% endblock %}
