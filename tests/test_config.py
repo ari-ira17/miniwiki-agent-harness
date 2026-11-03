@@ -6,17 +6,31 @@ from pydantic import SecretStr, ValidationError
 from app.config import Settings
 
 
-def test_settings_load_required_values_from_environment(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("host", "port"),
+    [(None, None), ("localhost", "55432")],
+    ids=["defaults", "explicit-host-and-port"],
+)
+def test_settings_load_required_values_from_environment(
+    monkeypatch, host: str | None, port: str | None
+) -> None:
     monkeypatch.setenv("POSTGRES_USER", "wiki")
     monkeypatch.setenv("POSTGRES_PASSWORD", "p@ss:word")
     monkeypatch.setenv("POSTGRES_DB", "wiki")
     monkeypatch.setenv("ADMIN_USERNAME", "admin")
     monkeypatch.setenv("ADMIN_PASSWORD", "initial-secret-123")
 
+    for key, value in (("POSTGRES_HOST", host), ("POSTGRES_PORT", port)):
+        if value is None:
+            monkeypatch.delenv(key, raising=False)
+        else:
+            monkeypatch.setenv(key, value)
+
     settings = Settings(_env_file=None)
 
     assert settings.database_url == (
-        "postgresql+psycopg://wiki:p%40ss%3Aword@db:5432/wiki?connect_timeout=3"
+        f"postgresql+psycopg://wiki:p%40ss%3Aword@{host or 'db'}:"
+        f"{port or '5432'}/wiki?connect_timeout=3"
     )
     assert settings.admin_username == "admin"
     assert settings.admin_password == SecretStr("initial-secret-123")
