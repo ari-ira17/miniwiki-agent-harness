@@ -3,6 +3,7 @@
 
 Supported skill frontmatter uses single-line YAML scalars for name and
 description. The local-only switch is an intermediate check, not final acceptance.
+Report artifacts are local; use --with-report to require their evidence registry.
 """
 import argparse
 import re
@@ -15,7 +16,7 @@ EXTERNAL = ("webapp-testing", "systematic-debugging", "grill-with-docs")
 RULES = ("stack.md", "security.md", "workflow.md", "definition-of-done.md")
 MEMORY = ("PROJECT.md", "PROGRESS.md", "DECISIONS.md", "GOTCHAS.md")
 REQUIRED = ("AGENTS.md", "ROADMAP.md", "docs/requirements/ASSIGNMENT.md",
-            "docs/architecture/HARNESS.md", "docs/report/evidence.md")
+            "docs/architecture/HARNESS.md")
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
@@ -100,12 +101,16 @@ def main():
                         help="intermediate validation of the three local skills")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent,
                         help="project root (also useful for isolated fixtures)")
+    parser.add_argument("--with-report", action="store_true",
+                        help="also require the local, Git-ignored report evidence registry")
     args = parser.parse_args()
     root = args.root.resolve()
     errors = []
     for name in REQUIRED:
         if not (root / name).is_file():
             errors.append(f"missing {name}")
+    if args.with_report and not (root / "docs/report/evidence.md").is_file():
+        errors.append("missing docs/report/evidence.md")
     for directory, names in (("docs/rules", RULES), ("docs/ai", MEMORY)):
         for name in names:
             if not (root / directory / name).is_file():
@@ -129,7 +134,8 @@ def main():
         print(f"FAIL: {len(errors)} issue(s)", file=sys.stderr)
         return 1
     mode = "local-only (intermediate, not final acceptance)" if args.local_only else "full"
-    print(f"PASS: {mode}; {len(names)} skills; {resources} with resources")
+    report = "checked" if args.with_report else "not requested (use --with-report)"
+    print(f"PASS: {mode}; {len(names)} skills; {resources} with resources; report: {report}")
     return 0
 
 

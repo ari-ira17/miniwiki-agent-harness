@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local report materials (kept locally, not published to GitHub)
+/docs/report/

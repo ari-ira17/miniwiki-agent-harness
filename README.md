@@ -71,3 +71,12 @@ Browser end-to-end checks are reserved until those workflows are implemented.
 After a first local startup, `python3 scripts/smoke.py` checks bootstrap
 idempotence, health behavior, and data preservation across Compose restarts.
 It stops and restarts the database container but never removes the named volume.
+
+## Project harness and local report
+
+Run `python3 scripts/check_harness.py` to validate the versioned rules, memory,
+and skills. The whole `docs/report/` directory is local and Git-ignored; report
+links in project notes refer to that local collection. It is not included in a
+fresh clone. Keep a separate backup of report materials. Use
+`python3 scripts/check_harness.py --with-report` to also require the local
+evidence registry when preparing the report.

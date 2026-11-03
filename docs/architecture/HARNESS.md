@@ -3,8 +3,11 @@
 Статус: компоненты харнесса настроены на этапе 2; приложение ещё отсутствует.
 Codex разрешён преподавателем. Доказательства и E04 см. в PROGRESS.
 
-Экспорт схемы: [PNG](../report/harness.png), [SVG](../report/harness.svg).
+Локальный экспорт схемы (не входит в Git): [PNG](../report/harness.png),
+[SVG](../report/harness.svg). В свежем клоне доступны исходники схемы;
+каталог docs/report/ и экспорты нужно создать локально перед генерацией.
 Воспроизводимый источник экспорта: [harness.dot](harness.dot).
+Подготовка: `mkdir -p docs/report`.
 Команды: `dot -Tpng docs/architecture/harness.dot -o docs/report/harness.png`
 и аналогично `-Tsvg` для SVG. Это диаграммы, а не снимки экрана.
 
