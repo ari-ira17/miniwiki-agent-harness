@@ -2,6 +2,14 @@
 
 Adapt the existing PROGRESS rather than duplicating stale status:
 
+Keep PROGRESS a short current-state summary. Replace superseded entries instead
+of appending session transcripts. Keep agreed decisions and their rationale as
+ADRs in DECISIONS; link to them here. Put detailed checks in logs/evidence and
+bugs in GOTCHAS. Use Git history to inspect previous versions of the memory;
+do not create duplicate archive copies when condensing the current summary.
+Distinguish checks run now from earlier recorded results; do not carry prior
+commit/push authorization into a new task.
+
 - Date, stage and whether its plan was approved; completed and in-progress work.
 - Git branch and relevant tracked/untracked changes; do not assume saved means committed.
 - Checks actually run, results and absent/skipped checks with reasons.
