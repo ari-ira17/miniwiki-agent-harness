@@ -19,8 +19,7 @@ case "$mode" in
         python3 scripts/smoke.py
         ;;
     e2e)
-        printf 'Browser workflows are not implemented yet.\n' >&2
-        exit 2
+        ./scripts/check-e2e.sh
         ;;
     *)
         printf 'Usage: %s [all|test|lint|smoke|e2e]\n' "$0" >&2
