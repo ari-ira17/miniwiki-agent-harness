@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Страницы · MiniWiki{% endblock %}
+
+{% block toc %}
+<nav class="toc-card" aria-label="Разделы">
+  <p class="sidebar-label">РАЗДЕЛЫ</p>
+  <a href="/">Главная</a>
+  <a href="/pages/new">Создать страницу</a>
+  {% if visible_tags %}<p class="sidebar-label toc-tags-label">ТЕГИ</p>{% for item in visible_tags %}<a href="/pages?tag={{ item|urlencode }}">#{{ item }}</a>{% endfor %}{% endif %}
+</nav>
+{% endblock %}
+
+{% block page_heading %}
+<section class="page-heading" aria-labelledby="pages-title">
+  <div class="heading-inner">
+    <p class="eyebrow">БАЗА ЗНАНИЙ · {{ total }} СТР.</p>
+    <h1 id="pages-title">Страницы</h1>
+    <p class="lead">Иерархические материалы курса в локальной базе.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section class="article-card page-list" aria-labelledby="page-list-title">
+  <div class="section-header">
+    <div>
+      <p class="section-kicker">СОДЕРЖИМОЕ</p>
+      <h2 id="page-list-title">Все страницы</h2>
+    </div>
+    <a class="button-link" href="/pages/new">Создать страницу</a>
+  </div>
+  <form class="search-form" action="/pages" method="get" role="search">
+    <label for="page-search">Поиск по заголовку и тексту</label>
+    <div class="search-controls"><input id="page-search" name="q" value="{{ q }}" maxlength="200" placeholder="Например, морфология"><select name="tag"><option value="">Все теги</option>{% for item in visible_tags %}<option value="{{ item }}"{% if item == tag %} selected{% endif %}>#{{ item }}</option>{% endfor %}</select><button class="button-primary" type="submit">Найти</button></div>
+  </form>
+  {% if pages %}
+  <ul class="page-items">
+    {% for page in pages %}
+    <li>
+      <a class="page-item" href="/wiki{{ page.path }}">
+        <span class="page-item-title">{{ page.title }}</span>
+        <code>{{ page.path }}</code>
+        {% if page.tags %}<span class="tag-list">{% for item in page.tag_names %}<span class="tag-chip">#{{ item }}</span>{% endfor %}</span>{% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state">
+    {% if q or tag %}<h3>Ничего не найдено</h3><p>По запросу «{{ q }}»{% if tag %} и тегу #{{ tag }}{% endif %} страниц нет. Измените запрос или фильтр.</p><a href="/pages">Сбросить фильтры</a>
+    {% else %}<h3>Пока нет страниц</h3><p>Создайте первую страницу и добавьте в неё материалы курса.</p><a href="/pages/new">Создать первую страницу</a>{% endif %}
+  </div>
+  {% endif %}
+  {% if total > limit %}
+  <nav class="pagination" aria-label="Страницы списка">
+    {% if has_previous %}<a href="/pages?limit={{ limit }}&amp;offset={{ previous_offset }}&amp;q={{ q|urlencode }}{% if tag %}&amp;tag={{ tag|urlencode }}{% endif %}">Назад</a>{% endif %}
+    <span>Показано {{ offset + 1 }}–{{ [offset + pages|length, total]|min }} из {{ total }}</span>
+    {% if has_next %}<a href="/pages?limit={{ limit }}&amp;offset={{ next_offset }}&amp;q={{ q|urlencode }}{% if tag %}&amp;tag={{ tag|urlencode }}{% endif %}">Далее</a>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}

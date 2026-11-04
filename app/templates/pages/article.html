@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} · MiniWiki{% endblock %}
+
+{% block toc %}
+<nav class="toc-card article-toc" aria-label="Оглавление статьи">
+  <p class="sidebar-label">ОГЛАВЛЕНИЕ</p>
+  {% for item in outline %}<a class="toc-level-{{ item.level }}" href="#{{ item.id }}">{{ item.title }}</a>{% else %}<span class="toc-empty">В статье пока нет заголовков</span>{% endfor %}
+  <a class="toc-action" href="/pages/{{ page.id }}/edit">Редактировать</a>
+</nav>
+{% endblock %}
+
+{% block sidebar_content %}{% if navigation_nodes is defined %}
+<nav class="sidebar-nav" aria-label="Дерево страниц">
+  {% for node in navigation_nodes %}{% if node.page_id %}<a class="sidebar-link tree-link{% if node.current %} active{% endif %}" href="/wiki{{ node.path }}" style="--tree-depth: {{ node.depth }}"{% if node.current %} aria-current="page"{% endif %}><span>{{ node.title }}</span></a>{% else %}<span class="sidebar-link tree-branch" style="--tree-depth: {{ node.depth }}">{{ node.title }}</span>{% endif %}{% else %}<span class="tree-empty">Страниц пока нет</span>{% endfor %}
+</nav>
+{% else %}{{ super() }}{% endif %}{% endblock %}
+
+{% block page_heading %}
+<section class="page-heading" aria-labelledby="page-title">
+  <div class="heading-inner">
+    <p class="eyebrow">{{ page.path }}</p>
+    <h1 id="page-title">{{ page.title }}</h1>
+    <nav class="breadcrumbs" aria-label="Навигационная цепочка">
+      {% for crumb in breadcrumbs %}{% if not loop.last %}{% if crumb.page_id or crumb.path == '/pages' %}<a href="{% if crumb.path == '/pages' %}/pages{% else %}/wiki{{ crumb.path }}{% endif %}">{{ crumb.title }}</a>{% else %}<span>{{ crumb.title }}</span>{% endif %}<span aria-hidden="true">›</span>{% else %}<span aria-current="page">{{ crumb.title }}</span>{% endif %}{% endfor %}
+    </nav>
+    {% if page.tags %}<div class="tag-list heading-tags" aria-label="Теги">{% for item in page.tag_names %}<a class="tag-chip" href="/pages?tag={{ item|urlencode }}">#{{ item }}</a>{% endfor %}</div>{% endif %}
+    <p class="lead">Изменено {{ page.updated_at.strftime("%Y-%m-%d %H:%M UTC") }} · Автор не указан</p>
+  </div>
+</section>
+{% endblock %}
+
+
+{% block content %}
+<article class="article-card markdown-content" data-page-article data-page-id="{{ page.id }}">
+  {{ rendered_html }}
+</article>
+{% endblock %}

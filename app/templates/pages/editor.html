@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{% if page %}Редактирование{% else %}Новая страница{% endif %} · MiniWiki{% endblock %}
+
+{% block toc %}
+<nav class="toc-card" aria-label="Редактор">
+  <p class="sidebar-label">РЕДАКТОР</p>
+  <a href="/pages">К списку страниц</a>
+  {% if page %}<a href="/wiki{{ page.path }}">Открыть статью</a>{% endif %}
+</nav>
+{% endblock %}
+
+{% block page_heading %}
+<section class="page-heading" aria-labelledby="editor-title">
+  <div class="heading-inner">
+    <p class="eyebrow">РЕДАКТОР MARKDOWN</p>
+    <h1 id="editor-title">{% if page %}Редактирование страницы{% else %}Новая страница{% endif %}</h1>
+    <p class="lead">Предпросмотр использует тот же безопасный рендер, что и статья.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section class="article-card editor-card">
+  <form data-page-editor data-mode="{{ mode }}"{% if page %} data-page-id="{{ page.id }}"{% endif %}>
+    <div class="form-field">
+      <label for="page-path">Иерархический путь</label>
+      {% if page %}
+      <input id="page-path" name="path" value="{{ page.path }}" readonly aria-describedby="path-help">
+      <p id="path-help" class="field-help">Путь закреплён за страницей и не изменяется.</p>
+      {% else %}
+      <input id="page-path" name="path" value="" placeholder="/docs/nlp" required pattern="/[a-z0-9]+(-[a-z0-9]+)*(?:/[a-z0-9]+(-[a-z0-9]+)*)*" maxlength="512" aria-describedby="path-help">
+      <p id="path-help" class="field-help">Строчные латинские буквы, цифры и дефисы; например /docs/nlp.</p>
+      {% endif %}
+    </div>
+    <div class="form-field">
+      <label for="page-title">Заголовок</label>
+      <input id="page-title" name="title" value="{{ page.title if page else '' }}" required maxlength="200" autocomplete="off">
+    </div>
+    <div class="form-field">
+      <label for="page-tags">Теги</label>
+      <input id="page-tags" name="tags" value="{{ page.tag_names|join(', ') if page else '' }}" maxlength="679" autocomplete="off" aria-describedby="tags-help">
+      <p id="tags-help" class="field-help">До 20 тегов через запятую, каждый до 32 символов; регистр и пробелы по краям не учитываются.</p>
+    </div>
+    <div class="form-field">
+      <label for="page-markdown">Текст страницы (Markdown)</label>
+      <textarea id="page-markdown" name="markdown" rows="16" maxlength="200000" data-markdown>{{ page.markdown if page else '' }}</textarea>
+      <p class="field-help">До 200&nbsp;000 символов. Заголовки, списки, ссылки, таблицы и блоки кода поддерживаются.</p>
+    </div>
+    <label class="checkbox-field" for="page-public">
+      <input id="page-public" name="is_public" type="checkbox"{% if page and page.is_public %} checked{% endif %}>
+      <span>Отметить как общедоступную для роли reader после добавления входа</span>
+    </label>
+    <p class="prototype-notice editor-notice" role="note">Вход и проверка ролей ещё не реализованы. Публичность пока не ограничивает доступ; приложение работает только локально.</p>
+    <div class="editor-actions">
+      <button class="button-secondary" type="button" data-preview>Обновить предпросмотр</button>
+      <button class="button-primary" type="submit">{% if page %}Сохранить изменения{% else %}Создать страницу{% endif %}</button>
+      {% if page %}<button class="button-danger" type="button" data-delete>Удалить</button>{% endif %}
+    </div>
+    <p class="form-message" data-form-message role="status" aria-live="polite"></p>
+  </form>
+  <section class="preview-section" aria-labelledby="preview-title">
+    <div class="section-header"><div><p class="section-kicker">ПРОВЕРЬТЕ РЕЗУЛЬТАТ</p><h2 id="preview-title">Предпросмотр</h2></div></div>
+    <article class="markdown-content" data-preview-content aria-live="polite"><p class="preview-placeholder">Здесь появится отформатированный текст.</p></article>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', path='/editor.js') }}?v=stage5" defer></script>{% endblock %}
