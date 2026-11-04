@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#5D5958">
     <title>{% block title %}MiniWiki{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=stage5">
   </head>
   <body>
     <header class="topbar">
@@ -13,8 +13,8 @@
         <span class="brand-mark" aria-hidden="true">M</span>
         <span>MiniWiki</span>
       </a>
-      <nav class="top-nav" aria-label="Служебная навигация">
-        <a href="/health">Состояние сервиса</a>
+      <nav class="top-nav" aria-label="Основная навигация">
+        <a href="/pages">Страницы</a>
         <a href="/docs">API</a>
       </nav>
     </header>
@@ -22,20 +22,27 @@
     <div class="app-shell">
       <aside class="sidebar" aria-label="Навигация по проекту">
         <p class="sidebar-label">РАЗДЕЛЫ</p>
-        <nav class="sidebar-nav">
-          <a class="sidebar-link active" href="#welcome">
+        {% block sidebar_content %}{% if navigation_nodes is defined %}
+        <nav class="sidebar-nav" aria-label="Дерево страниц">
+          {% for node in navigation_nodes %}
+            {% if node.page_id %}<a class="sidebar-link tree-link{% if node.current %} active{% endif %}" href="/wiki{{ node.path }}" style="--tree-depth: {{ node.depth }}"{% if node.current %} aria-current="page"{% endif %}><span>{{ node.title }}</span></a>
+            {% else %}<span class="sidebar-link tree-branch" style="--tree-depth: {{ node.depth }}">{{ node.title }}</span>{% endif %}
+          {% else %}<span class="tree-empty">Страниц пока нет</span>{% endfor %}
+        </nav>
+        {% else %}<nav class="sidebar-nav">
+          <a class="sidebar-link" href="/">
             <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m3 9 7-6 7 6v8H3zM7 17v-5h6v5"/></svg>
             <span>Обзор проекта</span>
           </a>
-          <a class="sidebar-link" href="#status">
+          <a class="sidebar-link" href="/#status">
             <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h4"/></svg>
             <span>Текущий статус</span>
           </a>
-          <a class="sidebar-link" href="#platform">
+          <a class="sidebar-link" href="/#platform">
             <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 5h14v10H3zM7 18h6M10 15v3M6 8h8M6 11h5"/></svg>
             <span>О платформе</span>
           </a>
-        </nav>
+        </nav>{% endif %}{% endblock %}
         <div class="sidebar-note">
           <span class="note-dot" aria-hidden="true"></span>
           <span>Локальная среда</span>
@@ -45,17 +52,20 @@
       <main id="main-content" class="main-area">
         {% block page_heading %}{% endblock %}
         <div class="content-grid">
+          {% block toc %}
           <nav class="toc-card" aria-label="На этой странице">
             <p class="sidebar-label">НА ЭТОЙ СТРАНИЦЕ</p>
-            <a href="#welcome">Добро пожаловать</a>
-            <a href="#status">Текущий статус</a>
-            <a href="#platform">О платформе</a>
+            <a href="/#welcome">Добро пожаловать</a>
+            <a href="/#status">Текущий статус</a>
+            <a href="/#platform">О платформе</a>
           </nav>
+          {% endblock %}
           <div class="page-content">
             {% block content %}{% endblock %}
           </div>
         </div>
       </main>
     </div>
+    {% block scripts %}{% endblock %}
   </body>
 </html>
