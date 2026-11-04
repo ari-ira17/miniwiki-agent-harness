@@ -1,8 +1,10 @@
 # MiniWiki
 
-MiniWiki is a small, server-rendered wiki for the NLP course project. This
-stage provides the FastAPI service, PostgreSQL, environment configuration,
-database migrations, and a database-backed readiness endpoint.
+MiniWiki is a small, server-rendered wiki for the NLP course project. It uses
+FastAPI, PostgreSQL and migrations, and provides a page REST API plus a
+Markdown editor with sanitized previews and articles. It supports case-
+insensitive search, tags, a page tree, breadcrumbs and article outlines.
+Login and role checks remain planned; keep this development service local.
 
 ## Requirements
 
@@ -63,11 +65,26 @@ system.
 
 ## Development checks
 
+Open `/pages` to search and filter articles or `/pages/new` to create one.
+To add only missing sample pages without changing existing ones, run
+`docker compose exec app python -m app.demo`. REST contracts and examples are
+in [docs/api.md](docs/api.md) and the local `/docs` interface.
+Markdown images use absolute HTTP(S) URLs; MiniWiki stores the link, not the
+file. Uploads are outside the MVP; the planned export will preserve those links.
+
 ```sh
 ./scripts/check.sh
 ```
 
-Browser end-to-end checks are reserved until those workflows are implemented.
+The default `all` mode runs unit/integration tests and Ruff. Browser E2E and
+the restart smoke check are separate commands described below.
+
+`./scripts/check.sh e2e` runs the browser editor and navigation scenarios in a separate Compose
+project with an isolated PostgreSQL volume and no published host ports. It
+installs Chromium and system libraries in that temporary app container, seeds
+only missing demo pages, tests search, tags, navigation, preview and CRUD, then
+removes the isolated containers and volume. It does not
+use the regular local database or its pages.
 After a first local startup, `python3 scripts/smoke.py` checks bootstrap
 idempotence, health behavior, and data preservation across Compose restarts.
 It stops and restarts the database container but never removes the named volume.
@@ -80,3 +97,6 @@ links in project notes refer to that local collection. It is not included in a
 fresh clone. Keep a separate backup of report materials. Use
 `python3 scripts/check_harness.py --with-report` to also require the local
 evidence registry when preparing the report.
+
+The UI uses Roboto Variable from Google Fonts (`ofl/roboto`), distributed
+under the SIL Open Font License 1.1; see `app/static/fonts/OFL-Roboto.txt`.
