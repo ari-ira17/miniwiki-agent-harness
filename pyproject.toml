@@ -8,6 +8,8 @@ dependencies = [
     "argon2-cffi>=25.1,<26.0",
     "fastapi>=0.121,<1.0",
     "jinja2>=3.1,<4.0",
+    "markdown-it-py>=4,<5",
+    "nh3>=0.3,<1",
     "psycopg[binary]>=3.2,<4.0",
     "pydantic-settings>=2.11,<3.0",
     "sqlalchemy>=2.0,<2.1",
@@ -24,8 +26,9 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not e2e'"
 pythonpath = ["."]
+markers = ["e2e: browser checks requiring the isolated E2E Compose profile"]
 
 [tool.ruff]
 line-length = 88
