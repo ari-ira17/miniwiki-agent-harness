@@ -5,7 +5,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import (
+    CsrfDependency,
+    CurrentUser,
+    page_scope_for,
+    require_roles,
+)
 from app.db import get_session
+from app.models.user import User, UserRole
 from app.schemas.pages import (
     PageCreate,
     PageLimit,
@@ -16,19 +23,28 @@ from app.schemas.pages import (
     validate_page_path,
 )
 from app.services import pages as page_service
-from app.services.permissions import PageScope, all_pages_scope
+from app.services.permissions import PageScope
 from app.services.search import search_pages
 
-router = APIRouter(prefix="/api/pages", tags=["pages"])
+router = APIRouter(
+    prefix="/api/pages",
+    tags=["pages"],
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "Sign in to access pages."},
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Editor role and CSRF token required for changes."
+        },
+    },
+)
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 
-def get_page_scope() -> PageScope:
-    """Shared visibility policy dependency, replaced by authentication at stage 6."""
-    return all_pages_scope
+def get_page_scope(user: CurrentUser) -> PageScope:
+    return page_scope_for(user)
 
 
 ScopeDependency = Annotated[PageScope, Depends(get_page_scope)]
+EditorUser = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.EDITOR))]
 
 
 def _not_found() -> HTTPException:
@@ -47,10 +63,17 @@ def _not_found() -> HTTPException:
     },
     summary="Create a page",
 )
-def create_page(data: PageCreate, session: SessionDependency) -> PageRead:
+def create_page(
+    data: PageCreate,
+    session: SessionDependency,
+    user: EditorUser,
+    _csrf: CsrfDependency,
+) -> PageRead:
     """Create a page at an unused canonical path."""
     try:
-        return page_service.create_page(session, data)
+        return page_service.create_page(
+            session, data, author_id=user.id, last_editor_id=user.id
+        )
     except page_service.PagePathConflict as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Page path is already in use."
@@ -127,10 +150,16 @@ def read_page(
     },
     summary="Edit a page",
 )
-def update_page(page_id: int, data: PageUpdate, session: SessionDependency) -> PageRead:
+def update_page(
+    page_id: int,
+    data: PageUpdate,
+    session: SessionDependency,
+    user: EditorUser,
+    _csrf: CsrfDependency,
+) -> PageRead:
     """Edit page content or visibility while keeping its path unchanged."""
     try:
-        return page_service.update_page(session, page_id, data)
+        return page_service.update_page(session, page_id, data, editor_id=user.id)
     except page_service.PageNotFound as error:
         raise _not_found() from error
     except page_service.EmptyPageUpdate as error:
@@ -146,7 +175,12 @@ def update_page(page_id: int, data: PageUpdate, session: SessionDependency) -> P
     responses={status.HTTP_404_NOT_FOUND: {"description": "Page not found."}},
     summary="Delete a page",
 )
-def delete_page(page_id: int, session: SessionDependency) -> Response:
+def delete_page(
+    page_id: int,
+    session: SessionDependency,
+    _user: EditorUser,
+    _csrf: CsrfDependency,
+) -> Response:
     """Delete one page without affecting descendants in the path hierarchy."""
     try:
         page_service.delete_page(session, page_id)

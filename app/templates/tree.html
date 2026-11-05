@@ -1,0 +1,39 @@
+{% macro tree_icon(kind) -%}
+{% if kind == 'folder' %}
+<svg class="tree-icon" aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M2.5 5.5h5l1.5 2h8.5v8.75H2.5z"/><path d="M2.5 5.5V4.25h5.25l1.5 1.25"/></svg>
+{% elif kind == 'document' %}
+<svg class="tree-icon" aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M5 2.75h6l4 4v10.5H5z"/><path d="M11 2.75v4h4M7.5 10h5M7.5 13h5"/></svg>
+{% else %}
+<svg class="tree-icon tree-icon-heading" aria-hidden="true" viewBox="0 0 20 20" focusable="false"><circle cx="10" cy="10" r="7.25"/><path d="M7 7.5h6M7 10h6M7 12.5h4"/></svg>
+{% endif %}
+{%- endmacro %}
+
+{% macro render_nodes(nodes, depth=0) -%}
+<ul class="tree-list">
+  {% for node in nodes %}
+  <li class="tree-node tree-node-{{ node.kind }}">
+    {% if node.children %}
+    <div class="tree-folder-row" style="--tree-depth: {{ depth }}">
+      <button class="tree-toggle" type="button" data-tree-toggle data-tree-title="{{ node.title }}" data-tree-kind="{{ node.kind }}" aria-expanded="{{ 'true' if node.expanded else 'false' }}" aria-controls="{{ node.tree_id }}" aria-label="{{ 'Свернуть' if node.expanded else 'Развернуть' }} {{ 'содержание' if node.kind == 'document' else 'подразделы' if node.kind == 'heading' else 'раздел' }} {{ node.title }}"><span aria-hidden="true"></span></button>
+      {% if node.kind == 'heading' %}
+      <a class="tree-heading-link{% if node.current %} active{% endif %}" href="/wiki{{ node.path }}#{{ node.anchor }}">{{ tree_icon('heading') }}<span>{{ node.title }}</span></a>
+      {% elif node.page_id %}
+      <a class="tree-folder-link{% if node.current %} active{% endif %}" href="/wiki{{ node.path }}"{% if node.current %} aria-current="page"{% endif %}>{{ tree_icon('document') }}<span>{{ node.title }}</span></a>
+      {% else %}
+      <span class="tree-branch-title">{{ tree_icon('folder') }}<span>{{ node.title }}</span></span>
+      {% endif %}
+    </div>
+    <div id="{{ node.tree_id }}" class="tree-children"{% if not node.expanded %} hidden{% endif %}>
+      {{ render_nodes(node.children, depth + 1) }}
+    </div>
+    {% elif node.kind == 'heading' %}
+    <a class="tree-heading-link" style="--tree-depth: {{ depth }}" href="/wiki{{ node.path }}#{{ node.anchor }}">{{ tree_icon('heading') }}<span>{{ node.title }}</span></a>
+    {% elif node.page_id %}
+    <a class="tree-leaf{% if node.current %} active{% endif %}" style="--tree-depth: {{ depth }}" href="/wiki{{ node.path }}"{% if node.current %} aria-current="page"{% endif %}>{{ tree_icon('document') }}<span>{{ node.title }}</span></a>
+    {% else %}
+    <span class="tree-branch-title tree-branch-leaf" style="--tree-depth: {{ depth }}">{{ tree_icon('folder') }}<span>{{ node.title }}</span></span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{%- endmacro %}

@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from sqlalchemy import Boolean, Enum, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Enum, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -16,9 +16,15 @@ class UserRole(StrEnum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint("length(btrim(first_name)) > 0", name="ck_users_first_name"),
+        CheckConstraint("length(btrim(last_name)) > 0", name="ck_users_last_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         Enum(
@@ -32,3 +38,7 @@ class User(Base):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"

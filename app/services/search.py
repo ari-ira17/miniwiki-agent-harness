@@ -1,7 +1,7 @@
 """Case-insensitive page search shared by API and HTML list views."""
 
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.page import Page
 from app.models.tag import Tag
@@ -33,7 +33,11 @@ def search_pages(
     total = session.scalar(select(func.count()).select_from(statement.subquery())) or 0
     pages = list(
         session.scalars(
-            statement.options(selectinload(Page.tags))
+            statement.options(
+                selectinload(Page.tags),
+                joinedload(Page.author),
+                joinedload(Page.last_editor),
+            )
             .order_by(Page.path)
             .limit(limit)
             .offset(offset)

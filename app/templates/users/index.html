@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Пользователи · MiniWiki{% endblock %}
+{% block toc %}
+<nav class="toc-card" aria-label="Управление пользователями"><p class="sidebar-label">УЧЁТНЫЕ ЗАПИСИ</p><a href="#create-user">Добавить пользователя</a><a href="#users-list">Список пользователей</a></nav>
+{% endblock %}
+{% block page_heading %}<section class="page-heading" aria-labelledby="users-title"><div class="heading-inner"><p class="eyebrow">АДМИНИСТРИРОВАНИЕ</p><h1 id="users-title">Пользователи</h1><p class="lead">Создавайте учётные записи и назначайте доступ.</p></div></section>{% endblock %}
+{% block content %}
+<section class="article-card users-card">
+  <section aria-labelledby="create-user"><div class="section-header"><div><p class="section-kicker">НОВАЯ УЧЁТНАЯ ЗАПИСЬ</p><h2 id="create-user">Добавить пользователя</h2></div></div>
+    <form data-create-user method="post" action="/api/users">
+      <div class="form-field"><label for="new-username">Имя пользователя</label><input id="new-username" name="username" required minlength="1" maxlength="64" autocomplete="off"></div>
+      <div class="form-field"><label for="new-first-name">Имя</label><input id="new-first-name" name="first_name" required minlength="1" maxlength="100" autocomplete="given-name"></div>
+      <div class="form-field"><label for="new-last-name">Фамилия</label><input id="new-last-name" name="last_name" required minlength="1" maxlength="100" autocomplete="family-name"></div>
+      <div class="form-field"><label for="new-password">Начальный пароль</label><input id="new-password" name="password" type="password" required minlength="12" maxlength="256" autocomplete="new-password"><p class="field-help">От 12 до 256 символов. Передайте пароль пользователю безопасным способом.</p></div>
+      <div class="form-field"><label for="new-role">Роль</label><select id="new-role" name="role"><option value="reader">reader — чтение public</option><option value="editor">editor — работа со страницами</option><option value="admin">admin — пользователи и страницы</option></select></div>
+      <button class="button-primary" type="submit">Создать пользователя</button><p class="form-message" data-create-message role="alert" aria-live="polite"></p>
+    </form>
+  </section>
+  <section class="users-list-section" aria-labelledby="users-list"><div class="section-header"><div><p class="section-kicker">УЧЁТНЫЕ ЗАПИСИ</p><h2 id="users-list">Список пользователей</h2></div><span>{{ users|length }} учётных записей</span></div>
+    <div class="users-list">
+    {% for user in users %}
+      <article class="user-row" data-user-row data-user-id="{{ user.id }}" data-role="{{ user.role.value }}" data-active="{{ 'true' if user.is_active else 'false' }}" data-first-name="{{ user.first_name }}" data-last-name="{{ user.last_name }}">
+        <div class="user-identity"><strong>{{ user.full_name }}</strong><span>{{ user.username }}</span></div>
+        <div class="user-controls">
+          <div class="form-field"><label for="first-name-{{ user.id }}">Имя</label><input id="first-name-{{ user.id }}" name="first_name" required minlength="1" maxlength="100" value="{{ user.first_name }}" autocomplete="given-name"></div>
+          <div class="form-field"><label for="last-name-{{ user.id }}">Фамилия</label><input id="last-name-{{ user.id }}" name="last_name" required minlength="1" maxlength="100" value="{{ user.last_name }}" autocomplete="family-name"></div>
+          <div class="form-field"><label for="role-{{ user.id }}">Роль</label><select id="role-{{ user.id }}" name="role"><option value="admin"{% if user.role.value == 'admin' %} selected{% endif %}>admin</option><option value="editor"{% if user.role.value == 'editor' %} selected{% endif %}>editor</option><option value="reader"{% if user.role.value == 'reader' %} selected{% endif %}>reader</option></select></div>
+          <label class="user-active"><input type="checkbox" name="is_active"{% if user.is_active %} checked{% endif %}> Активен</label>
+          <div class="form-field"><label for="password-{{ user.id }}">Новый пароль</label><input id="password-{{ user.id }}" name="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" placeholder="Оставьте пустым без изменений"></div>
+        </div>
+        <div class="user-actions"><button class="button-secondary" type="button" data-save-user>Сохранить</button><button class="button-danger" type="button" data-delete-user>Удалить</button></div>
+        <p class="form-message" data-user-message role="alert" aria-live="polite"></p>
+      </article>
+    {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='/users.js') }}?v=stage6" defer></script>{% endblock %}

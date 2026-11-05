@@ -4,7 +4,14 @@ import re
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.services.tags import normalize_tags
 
@@ -48,6 +55,19 @@ class PageCreate(BaseModel):
     def canonical_tags(cls, value: list[str]) -> list[str]:
         return normalize_tags(value)
 
+    @model_validator(mode="after")
+    def reconcile_public_tag(self) -> "PageCreate":
+        has_public = "public" in self.tags
+        public_was_sent = "is_public" in self.model_fields_set
+        tags_were_sent = "tags" in self.model_fields_set
+        if public_was_sent and tags_were_sent and self.is_public != has_public:
+            raise ValueError("is_public must match the public tag.")
+        if public_was_sent and self.is_public and not has_public:
+            self.tags = normalize_tags([*self.tags, "public"])
+            has_public = True
+        self.is_public = has_public
+        return self
+
 
 class PageUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -85,6 +105,17 @@ class PageUpdate(BaseModel):
             raise ValueError("Tags cannot be null.")
         return normalize_tags(value)
 
+    @model_validator(mode="after")
+    def reconcile_public_tag(self) -> "PageUpdate":
+        if "tags" not in self.model_fields_set:
+            return self
+        has_public = "public" in (self.tags or [])
+        if "is_public" in self.model_fields_set and self.is_public != has_public:
+            raise ValueError("is_public must match the public tag.")
+        if "is_public" not in self.model_fields_set:
+            self.is_public = has_public
+        return self
+
 
 class PageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -95,6 +126,9 @@ class PageRead(BaseModel):
     markdown: str
     is_public: bool
     author_id: int | None
+    author_full_name: str | None
+    last_editor_id: int | None
+    last_editor_full_name: str | None
     created_at: datetime
     updated_at: datetime
     tags: list[str] = Field(validation_alias="tag_names")

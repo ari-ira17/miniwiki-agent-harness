@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.pages import get_page_scope
@@ -11,7 +11,13 @@ from app.schemas.navigation import TreeNode
 from app.services.navigation import page_tree, visible_tags
 from app.services.permissions import PageScope
 
-router = APIRouter(prefix="/api", tags=["navigation"])
+router = APIRouter(
+    prefix="/api",
+    tags=["navigation"],
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "Sign in to read navigation."}
+    },
+)
 SessionDependency = Annotated[Session, Depends(get_session)]
 ScopeDependency = Annotated[PageScope, Depends(get_page_scope)]
 

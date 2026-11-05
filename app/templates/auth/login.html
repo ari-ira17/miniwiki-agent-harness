@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body_class %}login-page{% endblock %}
+{% block title %}Вход · MiniWiki{% endblock %}
+{% block toc %}{% endblock %}
+{% block page_heading %}
+<section class="page-heading" aria-labelledby="login-title"><div class="heading-inner"><p class="eyebrow">MINIWIKI</p><h1 id="login-title">Вход</h1><p class="lead">Войдите с учётной записью, выданной администратором.</p></div></section>
+{% endblock %}
+{% block content %}
+<section class="article-card"><form data-login-form method="post" action="/api/auth/login">
+  <div class="form-field"><label for="login-username">Имя пользователя</label><input id="login-username" name="username" required maxlength="64" autocomplete="username"></div>
+  <div class="form-field"><label for="login-password">Пароль</label><input id="login-password" name="password" type="password" required maxlength="256" autocomplete="current-password"></div>
+  <button class="button-primary" type="submit">Войти</button><p class="form-message" data-login-message role="alert" aria-live="polite"></p>
+</form></section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='/auth.js') }}?v=stage6" defer></script>{% endblock %}

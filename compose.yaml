@@ -25,6 +25,9 @@ services:
       POSTGRES_PORT: 5432
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:?Set ADMIN_FIRST_NAME in .env}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:?Set ADMIN_LAST_NAME in .env}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     depends_on:
       db:
         condition: service_healthy

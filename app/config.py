@@ -1,10 +1,13 @@
 """Environment based application settings."""
 
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, StringConstraints, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
+
+from app.profiles import validate_person_name
 
 
 class Settings(BaseSettings):
@@ -28,6 +31,21 @@ class Settings(BaseSettings):
     )
     admin_password: SecretStr = Field(
         min_length=12, max_length=256, validation_alias="ADMIN_PASSWORD"
+    )
+    admin_first_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ] = Field(validation_alias="ADMIN_FIRST_NAME")
+    admin_last_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ] = Field(validation_alias="ADMIN_LAST_NAME")
+
+    @field_validator("admin_first_name", "admin_last_name")
+    @classmethod
+    def valid_admin_names(cls, value: str) -> str:
+        return validate_person_name(value)
+
+    session_cookie_secure: bool = Field(
+        default=False, validation_alias="SESSION_COOKIE_SECURE"
     )
 
     @property

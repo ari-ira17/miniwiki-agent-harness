@@ -26,9 +26,15 @@ if (editor) {
   }
 
   async function requestJson(url, method, body) {
+    const headers = { "Content-Type": "application/json" };
+    if (method !== "GET") {
+      const tokenResponse = await fetch("/api/auth/csrf", { credentials: "same-origin" });
+      if (!tokenResponse.ok) throw new Error("Сессия завершилась. Войдите снова.");
+      headers["X-CSRF-Token"] = (await tokenResponse.json()).csrf_token;
+    }
     const response = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body),
     });
     let payload = null;
@@ -70,7 +76,6 @@ if (editor) {
     const body = {
       title: editor.querySelector("[name='title']").value,
       markdown: markdownInput.value,
-      is_public: editor.querySelector("[name='is_public']").checked,
       tags: editor.querySelector("[name='tags']").value.split(",").map((tag) => tag.trim()).filter(Boolean),
     };
     const url = create ? "/api/pages" : `/api/pages/${editor.dataset.pageId}`;

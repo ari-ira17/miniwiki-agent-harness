@@ -6,7 +6,7 @@
 <nav class="toc-card" aria-label="Разделы">
   <p class="sidebar-label">РАЗДЕЛЫ</p>
   <a href="/">Главная</a>
-  <a href="/pages/new">Создать страницу</a>
+  {% if current_user.role.value in ['admin', 'editor'] %}<a href="/pages/new">Создать страницу</a>{% endif %}
   {% if visible_tags %}<p class="sidebar-label toc-tags-label">ТЕГИ</p>{% for item in visible_tags %}<a href="/pages?tag={{ item|urlencode }}">#{{ item }}</a>{% endfor %}{% endif %}
 </nav>
 {% endblock %}
@@ -28,7 +28,7 @@
       <p class="section-kicker">СОДЕРЖИМОЕ</p>
       <h2 id="page-list-title">Все страницы</h2>
     </div>
-    <a class="button-link" href="/pages/new">Создать страницу</a>
+    {% if current_user.role.value in ['admin', 'editor'] %}<a class="button-link" href="/pages/new">Создать страницу</a>{% endif %}
   </div>
   <form class="search-form" action="/pages" method="get" role="search">
     <label for="page-search">Поиск по заголовку и тексту</label>
@@ -49,7 +49,7 @@
   {% else %}
   <div class="empty-state">
     {% if q or tag %}<h3>Ничего не найдено</h3><p>По запросу «{{ q }}»{% if tag %} и тегу #{{ tag }}{% endif %} страниц нет. Измените запрос или фильтр.</p><a href="/pages">Сбросить фильтры</a>
-    {% else %}<h3>Пока нет страниц</h3><p>Создайте первую страницу и добавьте в неё материалы курса.</p><a href="/pages/new">Создать первую страницу</a>{% endif %}
+    {% else %}<h3>Пока нет страниц</h3>{% if current_user.role.value in ['admin', 'editor'] %}<p>Создайте первую страницу и добавьте в неё материалы курса.</p><a href="/pages/new">Создать первую страницу</a>{% else %}<p>Нет доступных публичных страниц.</p>{% endif %}{% endif %}
   </div>
   {% endif %}
   {% if total > limit %}

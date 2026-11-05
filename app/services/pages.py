@@ -2,7 +2,7 @@
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.page import Page, utc_now
 from app.schemas.pages import PageCreate, PageUpdate
@@ -22,12 +22,20 @@ class EmptyPageUpdate(Exception):
     """Raised when a patch contains no changes."""
 
 
-def create_page(session: Session, data: PageCreate) -> Page:
+def create_page(
+    session: Session,
+    data: PageCreate,
+    *,
+    author_id: int | None = None,
+    last_editor_id: int | None = None,
+) -> Page:
     """Create a page, translating database uniqueness races into a domain error."""
     if session.scalar(select(Page.id).where(Page.path == data.path)) is not None:
         raise PagePathConflict
-    values = data.model_dump(exclude={"tags"})
+    values = data.model_dump(exclude={"tags", "is_public"})
     page = Page(**values)
+    page.author_id = author_id
+    page.last_editor_id = last_editor_id
     page.tags = get_or_create_tags(session, data.tags)
     session.add(page)
     try:
@@ -54,7 +62,11 @@ def list_pages(
         session.scalars(
             select(Page)
             .where(scope())
-            .options(selectinload(Page.tags))
+            .options(
+                selectinload(Page.tags),
+                joinedload(Page.author),
+                joinedload(Page.last_editor),
+            )
             .order_by(Page.path)
             .limit(limit)
             .offset(offset)
@@ -67,7 +79,13 @@ def list_pages(
 def get_page(session: Session, page_id: int, *, scope=all_pages_scope) -> Page:
     """Return a page by id or raise a domain error."""
     page = session.scalar(
-        select(Page).where(Page.id == page_id, scope()).options(selectinload(Page.tags))
+        select(Page)
+        .where(Page.id == page_id, scope())
+        .options(
+            selectinload(Page.tags),
+            joinedload(Page.author),
+            joinedload(Page.last_editor),
+        )
     )
     if page is None:
         raise PageNotFound
@@ -77,7 +95,13 @@ def get_page(session: Session, page_id: int, *, scope=all_pages_scope) -> Page:
 def get_page_by_path(session: Session, path: str, *, scope=all_pages_scope) -> Page:
     """Return a page by canonical path or raise a domain error."""
     page = session.scalar(
-        select(Page).where(Page.path == path, scope()).options(selectinload(Page.tags))
+        select(Page)
+        .where(Page.path == path, scope())
+        .options(
+            selectinload(Page.tags),
+            joinedload(Page.author),
+            joinedload(Page.last_editor),
+        )
     )
     if page is None:
         raise PageNotFound
@@ -85,21 +109,35 @@ def get_page_by_path(session: Session, path: str, *, scope=all_pages_scope) -> P
 
 
 def update_page(
-    session: Session, page_id: int, data: PageUpdate, *, scope=all_pages_scope
+    session: Session,
+    page_id: int,
+    data: PageUpdate,
+    *,
+    editor_id: int | None = None,
+    scope=all_pages_scope,
 ) -> Page:
     """Update editable fields, preserving the immutable path."""
     page = get_page(session, page_id, scope=scope)
     changes = data.model_dump(exclude_unset=True)
     if not changes:
         raise EmptyPageUpdate
+    public_compat = changes.pop("is_public", None)
     tags = changes.pop("tags", None)
+    if public_compat is not None:
+        current = {tag.name for tag in page.tags} if tags is None else set(tags)
+        current.discard("public")
+        if public_compat:
+            current.add("public")
+        tags = sorted(current)
     for field, value in changes.items():
         setattr(page, field, value)
     if tags is not None:
         current_tags = {tag.name for tag in page.tags}
         if current_tags != set(tags):
             page.tags = get_or_create_tags(session, tags)
-            page.updated_at = utc_now()
+    if editor_id is not None:
+        page.last_editor_id = editor_id
+    page.updated_at = utc_now()
     session.commit()
     session.refresh(page)
     return page

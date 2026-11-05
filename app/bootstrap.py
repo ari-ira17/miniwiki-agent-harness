@@ -1,5 +1,6 @@
 """Safe, repeatable creation of the initial administrator."""
 
+import re
 import sys
 from enum import StrEnum
 
@@ -7,11 +8,12 @@ from argon2 import PasswordHasher
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.auth.usernames import canonicalize_username, username_exists
 from app.config import get_settings
 from app.db import get_session_factory
 from app.models.user import User, UserRole
 
-_BOOTSTRAP_LOCK_ID = 783_242_051_007
+BOOTSTRAP_ADMIN_LOCK_ID = 783_242_051_007
 _password_hasher = PasswordHasher()
 
 
@@ -38,7 +40,7 @@ def ensure_initial_admin(
         # Serialize competing app startups to prevent duplicate bootstrap admins.
         session.execute(
             text("SELECT pg_advisory_xact_lock(:lock_id)"),
-            {"lock_id": _BOOTSTRAP_LOCK_ID},
+            {"lock_id": BOOTSTRAP_ADMIN_LOCK_ID},
         )
 
         active_admin = session.scalar(
@@ -49,15 +51,17 @@ def ensure_initial_admin(
         if active_admin is not None:
             return BootstrapResult.ALREADY_CONFIGURED
 
-        conflicting_user = session.scalar(
-            select(User.id).where(User.username == settings.admin_username).limit(1)
-        )
-        if conflicting_user is not None:
+        admin_username = canonicalize_username(settings.admin_username)
+        if not re.fullmatch(r"[\w.-]{1,64}", admin_username, flags=re.UNICODE):
+            raise ValueError("Configured initial administrator username is invalid.")
+        if username_exists(session, admin_username):
             raise BootstrapConfigurationConflict() from None
 
         session.add(
             User(
-                username=settings.admin_username,
+                username=admin_username,
+                first_name=settings.admin_first_name,
+                last_name=settings.admin_last_name,
                 password_hash=_password_hasher.hash(
                     settings.admin_password.get_secret_value()
                 ),
