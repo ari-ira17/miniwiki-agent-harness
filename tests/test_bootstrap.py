@@ -35,6 +35,9 @@ def test_creates_initial_admin_with_argon2_hash(user_sessions, monkeypatch) -> N
     assert result is BootstrapResult.CREATED
     assert len(users) == 1
     assert users[0].username == "first-admin"
+    assert users[0].first_name == get_settings().admin_first_name
+    assert users[0].last_name == get_settings().admin_last_name
+    assert users[0].full_name == f"{users[0].first_name} {users[0].last_name}"
     assert users[0].role is UserRole.ADMIN
     assert users[0].is_active is True
     assert users[0].password_hash != "temporary-test-password"
@@ -68,6 +71,8 @@ def test_username_collision_does_not_promote_existing_user(
         session.add(
             User(
                 username="shared-name",
+                first_name="Existing",
+                last_name="Editor",
                 password_hash="$argon2id$existing",
                 role=UserRole.EDITOR,
                 is_active=True,
@@ -96,6 +101,8 @@ def test_inactive_admin_name_collision_is_not_reactivated(
         session.add(
             User(
                 username="inactive-admin",
+                first_name="Inactive",
+                last_name="Admin",
                 password_hash="$argon2id$existing",
                 role=UserRole.ADMIN,
                 is_active=False,
@@ -113,3 +120,32 @@ def test_inactive_admin_name_collision_is_not_reactivated(
     assert len(users) == 1
     assert users[0].role is UserRole.ADMIN
     assert users[0].is_active is False
+
+
+def test_case_insensitive_username_collision_blocks_bootstrap(
+    user_sessions, monkeypatch
+) -> None:
+    _configure_admin(monkeypatch, "Alice", "temporary-test-password")
+    with user_sessions.begin() as session:
+        session.add(
+            User(
+                username="ALICE",
+                first_name="Alice",
+                last_name="Legacy",
+                password_hash="$argon2id$existing",
+                role=UserRole.EDITOR,
+                is_active=True,
+            )
+        )
+
+    try:
+        ensure_initial_admin(user_sessions)
+    except BootstrapConfigurationConflict:
+        pass
+    else:
+        raise AssertionError("Bootstrap must reject a case-insensitive collision")
+
+    users = _users(user_sessions)
+    assert len(users) == 1
+    assert users[0].username == "ALICE"
+    assert users[0].role is UserRole.EDITOR

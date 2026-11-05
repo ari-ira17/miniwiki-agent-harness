@@ -9,10 +9,24 @@ def test_root_renders_russian_service_shell() -> None:
     response = TestClient(app).get("/")
 
     assert response.status_code == 200
-    assert "Добро пожаловать в MiniWiki" in response.text
-    assert "Локальный прототип" in response.text
-    assert "Не размещайте сервис в открытой сети." in response.text
+    assert "Учебные дисциплины" in response.text
+    assert "Бакалавриат" in response.text
+    assert "КАТАЛОГ КУРСОВ" not in response.text
+    assert 'aria-label="Основная навигация">' in response.text
+    assert 'href="/pages/new"' not in response.text
     assert '<html lang="ru">' in response.text
+    assert 'href="/pages">Страницы</a>' not in response.text
+    assert "data-sidebar-toggle" in response.text
+    assert 'aria-controls="wiki-sidebar"' in response.text
+    assert "/static/navigation.js" in response.text
+
+
+def test_sidebar_navigation_script_is_served() -> None:
+    response = TestClient(app).get("/static/navigation.js")
+
+    assert response.status_code == 200
+    assert "sidebar-collapsed" in response.text
+    assert "aria-expanded" in response.text
 
 
 def test_app_start_runs_bootstrap_before_serving_requests(monkeypatch) -> None:

@@ -5,6 +5,8 @@ import os
 import pytest
 from playwright.sync_api import Page, expect, sync_playwright
 
+from tests.e2e.helpers import sign_in
+
 pytestmark = pytest.mark.e2e
 BASE_URL = os.environ.get("MINIWIKI_E2E_URL", "http://127.0.0.1:8000")
 
@@ -13,6 +15,7 @@ def test_search_tags_tree_toc_and_responsive_layout() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page: Page = browser.new_page(viewport={"width": 1440, "height": 1000})
+        sign_in(page)
         page.goto(f"{BASE_URL}/pages")
         expect(page.get_by_role("heading", name="Страницы", exact=True)).to_be_visible()
         page.evaluate("() => document.fonts.ready.then(() => true)")
@@ -48,13 +51,13 @@ def test_search_tags_tree_toc_and_responsive_layout() -> None:
         ).to_have_attribute("aria-current", "page")
         expect(
             page.get_by_role("navigation", name="Навигационная цепочка")
-        ).to_be_visible()
+        ).to_have_count(0)
         expect(
             page.get_by_role("navigation", name="Оглавление статьи").get_by_role(
                 "link", name="Подготовка корпуса"
             )
         ).to_be_visible()
-        expect(page.locator(".heading-tags .tag-chip")).to_have_count(2)
+        expect(page.locator(".heading-tags .tag-chip")).to_have_count(3)
         page.screenshot(path="/tmp/miniwiki-navigation-article.png", full_page=True)
         page.get_by_role("link", name="#поиск").click()
         expect(page.locator(".page-item")).to_have_count(1)

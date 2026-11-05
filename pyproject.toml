@@ -33,7 +33,11 @@ markers = ["e2e: browser checks requiring the isolated E2E Compose profile"]
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-extend-exclude = ["scripts/check_harness.py"]
+extend-exclude = [
+    "scripts/check_harness.py",
+    "docs/report/**",
+    "app/content/preprocessing.md",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

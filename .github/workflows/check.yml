@@ -31,6 +31,8 @@ jobs:
       POSTGRES_PORT: 5432
       ADMIN_USERNAME: ci-admin
       ADMIN_PASSWORD: ci-only-admin-password
+      ADMIN_FIRST_NAME: CI
+      ADMIN_LAST_NAME: Administrator
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

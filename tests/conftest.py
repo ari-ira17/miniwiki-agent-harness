@@ -7,13 +7,16 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, delete
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.auth.sessions import hash_password
 from app.config import get_settings
 from app.db import get_session
 from app.main import app
+from app.models.auth_session import AuthSession
+from app.models.user import User, UserRole
 
 
 @pytest.fixture(scope="session")
@@ -67,15 +70,55 @@ def page_sessions(integration_engine: Engine) -> Iterator[sessionmaker[Session]]
 
 
 @pytest.fixture
-def wiki_client(page_sessions: sessionmaker[Session]) -> Iterator[TestClient]:
-    """Provide a client backed by the isolated test database."""
+def auth_client(page_sessions: sessionmaker[Session]) -> Iterator[TestClient]:
+    """Provide a guest client with deterministic test accounts."""
 
     def override_session() -> Iterator[Session]:
         with page_sessions() as session:
             yield session
 
     app.dependency_overrides[get_session] = override_session
+    encoded = hash_password("test-password-123")
+    with page_sessions.begin() as session:
+        session.execute(delete(AuthSession))
+        session.execute(delete(User))
+        session.add_all(
+            [
+                User(
+                    username=f"test-{role.value}",
+                    first_name="Test",
+                    last_name=role.value.title(),
+                    password_hash=encoded,
+                    role=role,
+                    is_active=True,
+                )
+                for role in UserRole
+            ]
+        )
     try:
         yield TestClient(app)
     finally:
         app.dependency_overrides.pop(get_session, None)
+
+
+def login_as(
+    client: TestClient, username: str, password: str = "test-password-123"
+) -> None:
+    """Complete CSRF-protected login and retain the fresh CSRF header."""
+    client.cookies.clear()
+    client.headers.pop("X-CSRF-Token", None)
+    token = client.get("/api/auth/csrf").json()["csrf_token"]
+    result = client.post(
+        "/api/auth/login",
+        json={"username": username, "password": password},
+        headers={"X-CSRF-Token": token},
+    )
+    assert result.status_code == 200, result.text
+    client.headers["X-CSRF-Token"] = client.get("/api/auth/csrf").json()["csrf_token"]
+
+
+@pytest.fixture
+def wiki_client(auth_client: TestClient) -> Iterator[TestClient]:
+    """Provide an authenticated admin client for legacy CRUD/search tests."""
+    login_as(auth_client, "test-admin")
+    yield auth_client

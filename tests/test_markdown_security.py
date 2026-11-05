@@ -1,13 +1,8 @@
 """Markdown rendering, sanitization, preview and HTML route tests."""
 
-from collections.abc import Iterator
-
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session, sessionmaker
 
-from app.db import get_session
-from app.main import app
 from app.services.markdown import render_markdown
 
 
@@ -87,36 +82,33 @@ def test_image_urls_must_be_absolute_http_or_https() -> None:
 
 
 def test_preview_and_saved_article_share_the_same_renderer(
-    page_sessions: sessionmaker[Session],
+    wiki_client: TestClient,
 ) -> None:
-    def override_session() -> Iterator[Session]:
-        with page_sessions() as session:
-            yield session
+    markdown = "# Same output\n\n<script>alert(1)</script>\n\n- safe"
+    preview = wiki_client.post("/api/markdown/preview", json={"markdown": markdown})
+    assert preview.status_code == 200
+    assert preview.json()["html"] == render_markdown(markdown)
 
-    app.dependency_overrides[get_session] = override_session
-    client = TestClient(app)
-    try:
-        markdown = "# Same output\n\n<script>alert(1)</script>\n\n- safe"
-        preview = client.post("/api/markdown/preview", json={"markdown": markdown})
-        assert preview.status_code == 200
-        assert preview.json()["html"] == render_markdown(markdown)
-
-        created = client.post(
-            "/api/pages",
-            json={"path": "/docs/security", "title": "Security", "markdown": markdown},
-        )
-        assert created.status_code == 201
-        article = client.get("/wiki/docs/security")
-        assert article.status_code == 200
-        assert '<h1 id="article-same-output">Same output</h1>' in article.text
-        assert "<script" not in article.text
-        assert "alert(1)" not in article.text
-    finally:
-        app.dependency_overrides.pop(get_session, None)
+    created = wiki_client.post(
+        "/api/pages",
+        json={"path": "/docs/security", "title": "Security", "markdown": markdown},
+    )
+    assert created.status_code == 201
+    article = wiki_client.get("/wiki/docs/security")
+    assert article.status_code == 200
+    assert '<h1 id="article-same-output">Same output</h1>' in article.text
+    article_body = article.text.split(
+        '<article class="article-card markdown-content"', 1
+    )[1]
+    article_body = article_body.split("</article>", 1)[0]
+    assert "<script" not in article_body
+    assert "alert(1)" not in article_body
 
 
-def test_preview_rejects_unknown_fields_and_oversized_markdown() -> None:
-    client = TestClient(app)
+def test_preview_rejects_unknown_fields_and_oversized_markdown(
+    wiki_client: TestClient,
+) -> None:
+    client = wiki_client
     assert (
         client.post(
             "/api/markdown/preview", json={"markdown": "ok", "html": "<b>"}
@@ -132,23 +124,15 @@ def test_preview_rejects_unknown_fields_and_oversized_markdown() -> None:
 
 
 def test_editor_and_article_routes_render_from_shared_page_service(
-    page_sessions: sessionmaker[Session],
+    wiki_client: TestClient,
 ) -> None:
-    def override_session() -> Iterator[Session]:
-        with page_sessions() as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_session
-    client = TestClient(app)
-    try:
-        assert client.get("/pages").status_code == 200
-        assert client.get("/pages/new").status_code == 200
-        created = client.post(
-            "/api/pages",
-            json={"path": "/docs/ui", "title": "UI", "markdown": "## Article"},
-        ).json()
-        assert 'href="/wiki/docs/ui"' in client.get("/pages").text
-        assert client.get(f"/pages/{created['id']}/edit").status_code == 200
-        assert "Article" in client.get("/wiki/docs/ui").text
-    finally:
-        app.dependency_overrides.pop(get_session, None)
+    client = wiki_client
+    assert client.get("/pages").status_code == 200
+    assert client.get("/pages/new").status_code == 200
+    created = client.post(
+        "/api/pages",
+        json={"path": "/docs/ui", "title": "UI", "markdown": "## Article"},
+    ).json()
+    assert 'href="/wiki/docs/ui"' in client.get("/pages").text
+    assert client.get(f"/pages/{created['id']}/edit").status_code == 200
+    assert "Article" in client.get("/wiki/docs/ui").text

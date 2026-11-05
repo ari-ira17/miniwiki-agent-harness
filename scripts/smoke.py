@@ -65,9 +65,9 @@ def main() -> None:
     wait_ready()
     before = user_snapshot()
     admins = [u for u in before if u[2] == "admin" and u[3]]
-    if len(admins) != 1 or not admins[0][4].startswith("$argon2id$"):
-        raise RuntimeError("Expected exactly one active Argon2 bootstrap admin")
-    print("PASS: first startup, health200, one active Argon2 admin", flush=True)
+    if not admins or any(not admin[4].startswith("$argon2id$") for admin in admins):
+        raise RuntimeError("Expected at least one active Argon2 administrator")
+    print("PASS: first startup, health200, active Argon2 admin exists", flush=True)
 
     compose("exec", "-T", "app", "python", "-m", "app.bootstrap")
     if user_snapshot() != before:

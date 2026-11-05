@@ -2,8 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from app.api.pages import get_page_scope
-from app.services.permissions import public_pages_scope
+from tests.conftest import login_as
 
 
 def test_search_matches_cyrillic_title_and_markdown_and_escapes_like(
@@ -84,7 +83,7 @@ def test_page_tags_can_be_replaced_and_access_scope_filters_totals(
             "path": "/public",
             "title": "Visible",
             "is_public": True,
-            "tags": ["open"],
+            "tags": ["open", "public"],
         },
     ).json()
     private = wiki_client.post(
@@ -92,20 +91,18 @@ def test_page_tags_can_be_replaced_and_access_scope_filters_totals(
         json={"path": "/private", "title": "Secret", "tags": ["secret"]},
     ).json()
     updated = wiki_client.patch(
-        f"/api/pages/{visible['id']}", json={"tags": ["new", "NEW", "Course"]}
+        f"/api/pages/{visible['id']}",
+        json={"tags": ["new", "NEW", "Course", "public"]},
     )
     assert updated.status_code == 200
-    assert updated.json()["tags"] == ["course", "new"]
+    assert updated.json()["tags"] == ["course", "new", "public"]
     assert updated.json()["updated_at"] >= visible["updated_at"]
     assert wiki_client.patch(
         f"/api/pages/{visible['id']}", json={"markdown": "edited"}
-    ).json()["tags"] == ["course", "new"]
-    assert (
-        wiki_client.patch(f"/api/pages/{visible['id']}", json={"tags": []}).json()[
-            "tags"
-        ]
-        == []
-    )
+    ).json()["tags"] == ["course", "new", "public"]
+    removed_public = wiki_client.patch(f"/api/pages/{visible['id']}", json={"tags": []})
+    assert removed_public.status_code == 200
+    assert removed_public.json()["is_public"] is False
     assert (
         wiki_client.patch(
             f"/api/pages/{visible['id']}", json={"tags": None}
@@ -131,10 +128,10 @@ def test_page_tags_can_be_replaced_and_access_scope_filters_totals(
         == 422
     )
     assert wiki_client.patch(
-        f"/api/pages/{visible['id']}", json={"tags": ["course", "new"]}
-    ).json()["tags"] == ["course", "new"]
+        f"/api/pages/{visible['id']}", json={"tags": ["course", "new", "public"]}
+    ).json()["tags"] == ["course", "new", "public"]
 
-    wiki_client.app.dependency_overrides[get_page_scope] = lambda: public_pages_scope
+    login_as(wiki_client, "test-reader")
     try:
         listing = wiki_client.get("/api/pages").json()
         assert listing["total"] == 1
@@ -148,7 +145,7 @@ def test_page_tags_can_be_replaced_and_access_scope_filters_totals(
             ).status_code
             == 404
         )
-        assert wiki_client.get("/api/tags").json() == ["course", "new"]
+        assert wiki_client.get("/api/tags").json() == ["course", "new", "public"]
         assert wiki_client.get("/api/tags").json().count("secret") == 0
         tree = wiki_client.get("/api/navigation/tree").json()
         assert [node["path"] for node in tree] == ["/public"]
@@ -158,4 +155,4 @@ def test_page_tags_can_be_replaced_and_access_scope_filters_totals(
         assert "secret" not in hidden_search.text
         assert "/private" not in hidden_search.text
     finally:
-        wiki_client.app.dependency_overrides.pop(get_page_scope, None)
+        pass

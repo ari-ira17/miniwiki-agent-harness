@@ -6,28 +6,16 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, sessionmaker
 
-from app.db import get_session
-from app.main import app
 from app.models.page import Page
 from app.schemas.pages import PageCreate
 from app.services.pages import PagePathConflict, create_page
 
 
 @pytest.fixture
-def page_client(page_sessions: sessionmaker[Session]) -> Iterator[TestClient]:
-    """Provide an API client backed by this test's isolated PostgreSQL database."""
-
-    def override_session() -> Iterator[Session]:
-        with page_sessions() as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_session
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.pop(get_session, None)
+def page_client(wiki_client: TestClient) -> Iterator[TestClient]:
+    """Alias the authenticated integration client for this file's legacy tests."""
+    yield wiki_client
 
 
 def _create_page(client: TestClient, path: str, title: str) -> dict:
@@ -42,7 +30,7 @@ def test_page_crud_path_lookup_and_immutable_path(page_client: TestClient) -> No
     created = _create_page(page_client, "/docs/nlp", "  NLP course  ")
     assert created["title"] == "NLP course"
     assert created["is_public"] is False
-    assert created["author_id"] is None
+    assert created["author_id"] is not None
     assert created["path"] == "/docs/nlp"
     assert created["created_at"].endswith("Z") or "+00:00" in created["created_at"]
 
