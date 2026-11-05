@@ -14,7 +14,7 @@ DEMO_PAGES = [
         title="Лингвистика",
         markdown="# Лингвистика\n\nРаздел о языке и корпусах.",
         is_public=True,
-        tags=["демо", "лингвистика"],
+        tags=["демо", "лингвистика", "public"],
     ),
     PageCreate(
         path="/demo/linguistics/search",
@@ -22,7 +22,7 @@ DEMO_PAGES = [
         markdown="## Подготовка корпуса\n\nОчистите и разметьте тексты.\n\n"
         "## Поиск\n\nСравните запросы по заголовку и содержимому.",
         is_public=True,
-        tags=["демо", "поиск"],
+        tags=["демо", "поиск", "public"],
     ),
     PageCreate(
         path="/demo/linguistics/tags",
