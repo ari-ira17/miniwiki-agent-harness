@@ -1,9 +1,9 @@
 # MiniWiki REST API
 
 Interactive OpenAPI documentation is available locally at `/docs`; the schema
-is available at `/openapi.json`. The service is currently a local development
-prototype bound to `127.0.0.1`. Login, authorization and CSRF protection are
-planned for stage 6; do not expose the current API to an untrusted network.
+is available at `/openapi.json`. The default Compose service is bound to `127.0.0.1`. Authentication uses
+server-side PostgreSQL sessions and cookies. Guests cannot read wiki content;
+there is no self-registration. The initial admin creates other accounts.
 
 All endpoints use JSON except `DELETE`, which returns an empty `204` response.
 Unknown JSON fields are rejected. Validation errors use FastAPI's `422`
@@ -19,6 +19,9 @@ response, missing pages return `404`, and duplicate paths return `409`.
   "markdown": "# Course notes",
   "is_public": false,
   "author_id": null,
+  "author_full_name": null,
+  "last_editor_id": null,
+  "last_editor_full_name": null,
   "created_at": "2026-11-04T12:00:00Z",
   "updated_at": "2026-11-04T12:00:00Z",
   "tags": ["nlp", "поиск"]
@@ -35,7 +38,15 @@ normalized and casefolded for identity, stored in canonical lowercase form,
 limited to 20 per page and 32 characters each. Commas and control characters
 are rejected because the editor uses comma-separated input. New pages are
 private by default.
-The optional author remains null until authenticated editing is implemented.
+New pages record the authenticated creator in `author_id` and initial editor
+in `last_editor_id`. Authenticated saves (including tags/visibility) update the
+last editor and timestamp while preserving the creator. Read responses include
+`author_full_name` and `last_editor_full_name`; legacy/imported records can have
+null attribution. Editor fields cannot be supplied by clients. The `public` tag controls reader visibility. `is_public`
+is a compatibility representation of that tag. Setting only `is_public` adds
+or removes the tag; setting only `tags` derives visibility from the tag. When
+both are supplied, inconsistent values return `422`. Adding `public` through
+the boolean alias still respects the maximum of 20 tags.
 
 Markdown rendering is server-side and shared by the article view and preview
 endpoint. The sanitizer preserves headings, lists, tables, code, links and
@@ -75,7 +86,74 @@ Content-Type: application/json
 }
 ```
 
-No authentication or role checks exist yet; the service remains local only.
-Read, search, tag and tree operations use one injectable page-visibility scope.
-It currently permits all pages in this prototype. Stage 6 will derive the
-scope from the principal and verify the role matrix across every channel.
+## Authentication and permissions
+
+| Operation | Guest | Reader | Editor | Admin |
+|---|---|---|---|---|
+| Read/list/search/tags/tree | `401` | Public-tagged pages only | All pages | All pages |
+| Create/update/delete/preview | `401` | `403` | Allowed | Allowed |
+| Manage users | `401` | `403` | `403` | Allowed |
+
+A private or missing article returns the same `404` to a reader, by id or
+path. Counts, pagination, search, tags, tree and breadcrumbs use the same
+visibility scope before deriving results. A virtual branch may reveal the
+path segment required to reach a visible descendant, but never the hidden
+ancestor title or link. HTML article routes redirect guests to `/login`.
+The public tag does not enable guest access. Export is a separate stage 7.
+
+The agreed session lifetime is eight hours with an absolute server expiry.
+Session identifiers are random and stored hashed, as are CSRF tokens.
+The session cookie is HttpOnly and SameSite=Lax; HTTPS deployments must enable
+Secure cookies. Logout revokes the server record. Password/role changes,
+deactivation and deletion revoke that user's sessions.
+
+All cookie-authenticated state-changing requests, including login, logout and
+Markdown preview, require an `X-CSRF-Token` matching the issued session.
+First call `GET /api/auth/csrf` and retain both cookies. Send its `csrf_token`
+in the header for `POST /api/auth/login` with JSON `username` and `password`.
+A successful login rotates the cookies and token: call the CSRF endpoint
+again before subsequent mutations. `GET /api/auth/me` returns the current
+identity; `POST /api/auth/logout` returns `204`. Invalid CSRF returns `403`.
+Do not put tokens or credentials in URLs or save them in shared logs.
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+X-CSRF-Token: <token returned by the CSRF endpoint>
+Cookie: <cookies retained by your HTTP client>
+
+{"username": "<your username>", "password": "<your password>"}
+```
+
+## User administration
+
+Only active admins can access `/api/users` and the `/users` screen. There is
+no self-registration. User responses contain `id`, `username`, `first_name`, `last_name`,
+`full_name`, `role` and `is_active`; passwords and hashes are never returned.
+
+| Method and path | Success | Body and behavior |
+|---|---:|---|
+| `GET /api/users` | `200` | List accounts ordered by username. |
+| `POST /api/users` | `201` | `username`, `first_name`, `last_name`, `password`, `role` (`admin`, `editor`, `reader`); creates an active account. |
+| `PATCH /api/users/{user_id}` | `200` | Change `first_name`, `last_name`, `role`, `is_active` and/or `password`; username is immutable. |
+| `DELETE /api/users/{user_id}` | `204` | Remove the account; its articles remain, with creator/editor links to this account cleared. |
+
+First and last names are required, trimmed, 1–100 characters each, and cannot
+be null or contain only whitespace. Admins edit these fields; changing only
+a name does not revoke sessions.
+
+New usernames are trimmed and casefolded, 1–64 characters after normalization: letters, numbers,
+underscore, dot or hyphen. Login matches normalized usernames; existing mixed-case accounts retain their
+stored names while sharing the same collision checks. If legacy data already
+contains conflicting case variants, login requires the exact stored spelling;
+new accounts cannot introduce such conflicts. Passwords must
+contain 12–256 characters and are stored with Argon2. The admin supplies the
+initial credentials to the intended user; this app does not send them.
+
+Duplicate usernames return `409`; missing users return `404`. Empty patches,
+unknown fields, invalid roles and invalid passwords return `422`. The final
+active admin cannot be deleted, disabled or demoted (`409`), including
+concurrent mutations. Password resets, role changes, deactivation and deletion
+revoke the target user's sessions. The next request requires login again.
+An admin changing their own password or role must also sign in again.
+Mutations use the same CSRF header flow as article operations.
