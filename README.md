@@ -1,137 +1,92 @@
 # MiniWiki
 
-MiniWiki is a small, server-rendered wiki for the NLP course project. It uses
-FastAPI, PostgreSQL and migrations, and provides a page REST API plus a
-Markdown editor with sanitized previews and articles. It supports case-
-insensitive search, tags, a collapsible page tree and article outlines.
-Article access requires login. Admins manage accounts; editors maintain articles;
-readers can read only articles tagged `public`. Guests cannot read articles.
+MiniWiki хранит учебные материалы в Markdown. В ней можно создавать и редактировать статьи, искать их по тексту и тегам и переходить между разделами через боковое дерево. Проект сделан для курса «Обработка естественного языка».
 
-## Requirements
+Приложение написано на Python и FastAPI. Сервер собирает HTML из шаблонов Jinja, а данные хранит в PostgreSQL. Для работы со страницами также есть REST API.
 
-- Docker Engine with Docker Compose v2
-- A local `.env` file copied from `.env.example`
+## Запуск
 
-Set distinct local values for `POSTGRES_PASSWORD` and `ADMIN_PASSWORD` in
-`.env`. Keep `.env` private; it is ignored by Git.
-The first administrator is created from the startup environment. Open `/login`
-and sign in with those credentials. There is no self-registration; the admin
-creates other users and assigns their roles. New account names are normalized
-with trim/casefold; existing account names and passwords are preserved.
-
-## Start
+Понадобятся Docker Engine и Docker Compose v2. При первом запуске скопируйте
+настройки из примера:
 
 ```sh
 cp .env.example .env
-# Edit .env and replace both placeholder passwords.
+```
+
+Задайте в `.env` разные пароли для базы (`POSTGRES_PASSWORD`) и администратора
+(`ADMIN_PASSWORD`). В том же файле укажите логин, имя и фамилию администратора
+(`ADMIN_USERNAME`, `ADMIN_FIRST_NAME` и `ADMIN_LAST_NAME`). Файл `.env`
+содержит секреты и исключён из Git.
+
+```sh
 docker compose up --build
 ```
 
-The app listens on `http://127.0.0.1:8000`. PostgreSQL is reachable by the app
-inside the Compose network and is not published on the host. Its data lives in
-the named `postgres_data` volume and survives container recreation and ordinary
-`docker compose down`.
+Откройте <http://127.0.0.1:8000> и войдите под учётной записью администратора.
+При запуске Alembic применяет миграции, а приложение создаёт администратора,
+если в базе нет активного администратора. При следующих запусках существующие
+учётные записи сохраняются. Пароли хранятся в виде хешей Argon2. Если нужный логин уже занят и активного
+администратора нет, запуск остановится с ошибкой конфигурации.
 
-Check readiness:
+PostgreSQL доступен приложению внутри сети Compose. Данные лежат в томе
+`postgres_data`. Команда `docker compose down` останавливает сервисы и
+сохраняет том. Команда `docker compose down --volumes` удаляет его вместе с базой.
 
-```sh
-curl --fail http://localhost:8000/health
-docker compose exec app alembic current
-docker compose exec app python -m pytest -q
-docker compose exec app ruff check .
-docker compose exec app ruff format --check .
-```
+## Статьи и доступ
 
-Each app start creates an active administrator using `ADMIN_USERNAME` and
-`ADMIN_PASSWORD` only when none exists. The password is stored as an Argon2
-hash. Later starts leave existing users and passwords unchanged. If the
-database has no active admin and the configured name belongs to an editor,
-reader, or inactive admin, startup stops with a generic configuration error
-rather than changing that account.
-
-Both first and last names are required for user accounts. The initial admin
-gets these names from `ADMIN_FIRST_NAME` and `ADMIN_LAST_NAME` in the local env.
-Admins can open `/users` to create accounts, edit names, assign roles, disable users,
-reset passwords or delete accounts. The final active admin is protected from
-deletion, deactivation and demotion. Role/password changes revoke that user's
-sessions. Removing a user preserves their articles. Users sign in with the
-credentials supplied by the admin; the app does not deliver passwords.
-
-`/health` returns `200 {"status":"ok"}` when a simple PostgreSQL query
-succeeds, or a generic `503 {"status":"unavailable"}` while the database is
-unavailable. It does not reveal connection details.
-
-To stop services while preserving data, run `docker compose down`. To erase the
-database volume explicitly, run `docker compose down --volumes`.
-
-## Configuration
-
-Copy `.env.example` to `.env`. `POSTGRES_USER`, `POSTGRES_PASSWORD`,
-`POSTGRES_DB`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME` and
-`ADMIN_LAST_NAME` configure the application.
-It constructs the database URL from individual PostgreSQL values so passwords
-containing URL punctuation are escaped correctly. Server-side sessions expire
-after eight hours. For HTTPS deployments enable Secure cookies using
-`SESSION_COOKIE_SECURE=true`; the default local HTTP profile uses false.
-State-changing API calls use session cookies and an `X-CSRF-Token`; see
-[docs/api.md](docs/api.md) for the login flow.
-
-## Development checks
-
-After signing in, the discipline catalog opens. Admins and editors can click
-**Создать страницу** in the header (or open `/pages/new`), enter an immutable
-hierarchical path, title and Markdown, preview, then save. `/pages` remains
-available for search and tag filtering. Add the `public` tag to make an
-article readable by readers; removing it makes the article private.
-The home page lists disciplines by year. NLP and the fifth-semester programming
-workshop open local course articles; the other catalog links return home.
-The NLP course links to a local preprocessing lecture. Course material links
-return to their course, except for the specified CRISP-DM presentation.
-Articles show tags and the last editor's full name and change time. The original
-creator remains stored separately in the database/API and is not shown in the article.
-The sidebar groups courses by degree and year. Each course has a main-page
-link and a folder of local lectures. Empty
-lecture folders show **Лекции отсутствуют**; document sections remain in the
-article outline. A circular arrow at the bottom left hides or restores the
-sidebar; the wider reading layout retains outer margins and a width limit.
-
-To create only missing course articles and the preprocessing lecture, run
-`docker compose exec app python -m app.course_samples`. Existing articles are
-preserved on rerun; startup does not overwrite user content or delete pages.
-`app.demo` supplies isolated test fixtures and is not needed in the working wiki.
-REST contracts and examples are in [docs/api.md](docs/api.md) and `/docs`.
-
-Markdown images use absolute HTTP(S) URLs; MiniWiki stores the link, not the
-file. Uploads are outside the MVP; the planned export will preserve those links.
+После входа открывается каталог дисциплин. В нём есть страницы курса по
+обработке естественного языка, практикума по программированию и лекции по
+предварительной обработке текста. Если их нужно добавить в чистую базу,
+выполните команду ниже. Она добавляет только недостающие материалы.
 
 ```sh
-./scripts/check.sh
+docker compose exec app python -m app.course_samples
 ```
 
-The default `all` mode runs unit/integration tests and Ruff. Browser E2E and
-the restart smoke check are separate commands described below.
+- Читатель (`reader`) видит только статьи с тегом `public`. Для чтения нужен вход.
+- Редактор (`editor`) читает все статьи и может создавать и менять их.
+- Администратор (`admin`) также управляет учётными записями на странице
+  `/users` и выгружает все статьи через кнопку **Скачать ZIP**.
 
-`./scripts/check.sh e2e` runs the browser editor, navigation and role scenarios in a separate Compose
-project with an isolated PostgreSQL volume and no published host ports. It
-installs Chromium and system libraries in that temporary app container, seeds
-only missing demo pages, tests search, tags, navigation, preview, CRUD, admin
-account creation, reader restrictions, login/logout and session revocation, then
-removes the isolated containers and volume. It does not
-use the regular local database or its pages. Forms require JavaScript for the
-normal JSON workflow; without it they safely submit by POST and are rejected
-without placing credentials in the URL.
-After a first local startup, `python3 scripts/smoke.py` checks bootstrap
-idempotence, health behavior, and data preservation across Compose restarts.
-It stops and restarts the database container but never removes the named volume.
+Нажмите **Создать страницу** или откройте `/pages/new`. Укажите заголовок,
+путь и текст Markdown. Путь после
+сохранения изменить нельзя. Предпросмотр показывает, как будет выглядеть статья.
+На странице `/pages` доступны поиск и фильтр по тегам. В статье видны оглавление,
+теги, имя последнего редактора и время правки.
 
-## Project harness and local report
+Администратор выдаёт логины и начальные пароли. При создании учётной записи
+приложение убирает пробелы по краям логина и приводит его к форме для сравнения
+без учёта регистра. Последнего активного администратора нельзя удалить,
+отключить или перевести на другую роль. Смена пароля или роли завершает сессии
+пользователя. Удаление учётной записи сохраняет её статьи.
 
-Run `python3 scripts/check_harness.py` to validate the versioned rules, memory,
-and skills. The whole `docs/report/` directory is local and Git-ignored; report
-links in project notes refer to that local collection. It is not included in a
-fresh clone. Keep a separate backup of report materials. Use
-`python3 scripts/check_harness.py --with-report` to also require the local
-evidence registry when preparing the report.
+## API и настройки
 
-The UI uses Roboto Variable from Google Fonts (`ofl/roboto`), distributed
-under the SIL Open Font License 1.1; see `app/static/fonts/OFL-Roboto.txt`.
+Интерактивная документация открывается по адресу <http://127.0.0.1:8000/docs>.
+Примеры запросов, порядок входа и формат выгрузки описаны в
+[документации API](docs/api.md). Администратор может запросить выгрузку через
+`GET /api/export`. В архиве `miniwiki-export.zip` каждой статье соответствует
+файл `.md` в UTF-8. Путь к файлу повторяет путь статьи, заголовок и теги
+записаны в блоке YAML, а текст Markdown сохраняется вместе со ссылками
+на изображения.
+
+Сессия действует восемь часов. Для изменяющих запросов используется заголовок
+`X-CSRF-Token`. При развёртывании по HTTPS задайте в `.env`
+`SESSION_COOKIE_SECURE=true`. Для локального HTTP в примере установлено
+`false`. Настройки подключения к базе задаются через `POSTGRES_USER`,
+`POSTGRES_PASSWORD` и `POSTGRES_DB`.
+
+
+## Правила проекта
+
+Правила для агента находятся в [AGENTS.md](AGENTS.md) и [docs/rules](docs/rules).
+Решения и состояние проекта записаны в [docs/ai](docs/ai), а навыки лежат
+в [.agents/skills](.agents/skills). Команда `python3 scripts/check_harness.py`
+проверяет комплектность этих файлов и ссылки в навыках.
+
+Отчёт, снимки и реестр доказательств хранятся локально в `docs/report/`.
+Чтобы проверить и наличие реестра, запустите
+`python3 scripts/check_harness.py --with-report`.
+
+Интерфейс использует Roboto Variable из Google Fonts. Условия распространения
+указаны в [лицензии SIL Open Font License 1.1](app/static/fonts/OFL-Roboto.txt).

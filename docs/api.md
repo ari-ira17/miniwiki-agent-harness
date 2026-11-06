@@ -5,7 +5,8 @@ is available at `/openapi.json`. The default Compose service is bound to `127.0.
 server-side PostgreSQL sessions and cookies. Guests cannot read wiki content;
 there is no self-registration. The initial admin creates other accounts.
 
-All endpoints use JSON except `DELETE`, which returns an empty `204` response.
+Successful responses use JSON by default. `DELETE` returns an empty `204`
+response, and export returns a ZIP attachment.
 Unknown JSON fields are rejected. Validation errors use FastAPI's `422`
 response, missing pages return `404`, and duplicate paths return `409`.
 
@@ -52,9 +53,7 @@ Markdown rendering is server-side and shared by the article view and preview
 endpoint. The sanitizer preserves headings, lists, tables, code, links and
 remote images with absolute `http`/`https` URLs. It removes scripts, SVG,
 event-handler attributes, and dangerous URL schemes. Images are referenced by
-URL; uploads and local asset storage are outside this sprint. The planned
-stage 7 export will preserve the Markdown URL without downloading image files;
-export is not implemented yet.
+URL. Export preserves those URLs in the Markdown source.
 
 ## Endpoints
 
@@ -67,6 +66,7 @@ export is not implemented yet.
 | `PATCH /api/pages/{page_id}` | `200` | Change `title`, `markdown`, `is_public`, and/or `tags`. Omitted tags are preserved; `tags: []` removes all tags. Path and unknown fields are rejected. Empty patches are invalid. |
 | `GET /api/tags` | `200` | List tags attached to pages visible to the current principal. |
 | `GET /api/navigation/tree` | `200` | Return nested visible pages and virtual branches. A node has `path`, `title`, nullable `page_id`, and `children`. |
+| `GET /api/export` | `200` | Download all wiki pages as a ZIP attachment. Admin only. |
 | `DELETE /api/pages/{page_id}` | `204` | Delete only the selected page. |
 | `POST /api/markdown/preview` | `200` | Render and sanitize `{ "markdown": "..." }`; returns `{ "html": "...", "outline": [{"level": 2, "title": "Section", "id": "article-section"}] }`. Heading IDs use an `article-` prefix and are unique and stable. Maximum 200,000 characters. |
 
@@ -93,13 +93,15 @@ Content-Type: application/json
 | Read/list/search/tags/tree | `401` | Public-tagged pages only | All pages | All pages |
 | Create/update/delete/preview | `401` | `403` | Allowed | Allowed |
 | Manage users | `401` | `403` | `403` | Allowed |
+| Export all pages | `401` | `403` | `403` | Allowed |
 
 A private or missing article returns the same `404` to a reader, by id or
 path. Counts, pagination, search, tags, tree and breadcrumbs use the same
 visibility scope before deriving results. A virtual branch may reveal the
 path segment required to reach a visible descendant, but never the hidden
-ancestor title or link. HTML article routes redirect guests to `/login`.
-The public tag does not enable guest access. Export is a separate stage 7.
+ancestor title or link. The home page and HTML article routes redirect guests
+to `/login`.
+The public tag does not enable guest access.
 
 The agreed session lifetime is eight hours with an absolute server expiry.
 Session identifiers are random and stored hashed, as are CSRF tokens.
@@ -124,6 +126,26 @@ Cookie: <cookies retained by your HTTP client>
 
 {"username": "<your username>", "password": "<your password>"}
 ```
+
+## Export
+
+`GET /api/export` uses the admin's session cookie and takes no parameters or
+request body. It is read-only. A successful response contains a binary
+`application/zip` body with `Content-Disposition: attachment; filename="miniwiki-export.zip"`
+and `Cache-Control: no-store`. The archive includes public and private pages.
+
+ZIP entry names are relative. `/docs/nlp` maps to `docs/nlp.md`, and
+`/docs/nlp/topic` maps to `docs/nlp/topic.md`. Each UTF-8 file begins with
+YAML front matter delimited by `---` lines. The fields are `title` (string)
+and `tags` (list of strings). The stored Markdown follows the closing delimiter
+and its newline byte for byte. An empty wiki yields a valid empty ZIP.
+
+The API returns `401` for guests and `403` for readers and editors. If a stored
+path is invalid or multiple entries would have the same name, the response is
+`409` with a generic JSON error and no archive. The **Скачать ZIP** link uses
+`GET /export`, which redirects guests to `/login` and returns `403` for readers
+and editors. Entry names preserve the page path exactly. Windows extractors may
+reject reserved file or directory names such as `con` and `nul`.
 
 ## User administration
 
