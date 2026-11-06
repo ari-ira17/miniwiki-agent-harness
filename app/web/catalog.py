@@ -1,4 +1,4 @@
-"""Public course catalog and authenticated page-tree context for home."""
+"""Course catalog and page tree for signed-in users."""
 
 from pathlib import Path
 from typing import Annotated
@@ -6,17 +6,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
 
-from app.auth.dependencies import AuthSessionDependency, page_scope_for
-from app.db import get_session
+from app.auth.dependencies import SessionDependency, page_scope_for, require_html_user
 from app.models.user import User
 from app.web.pages import _navigation_context
 
 router = APIRouter(include_in_schema=False)
 APP_DIR = Path(__file__).resolve().parents[1]
 templates = Jinja2Templates(directory=APP_DIR / "templates")
-SessionDependency = Annotated[Session, Depends(get_session)]
 
 
 CATALOG = (
@@ -98,16 +95,11 @@ CATALOG = (
 def course_catalog(
     request: Request,
     session: SessionDependency,
-    auth_session: AuthSessionDependency,
+    user: Annotated[User, Depends(require_html_user)],
 ) -> HTMLResponse:
-    user: User | None = auth_session.user if auth_session else None
-    navigation_nodes = (
-        _navigation_context(session, page_scope_for(user), home=True)[
-            "navigation_nodes"
-        ]
-        if user
-        else None
-    )
+    navigation_nodes = _navigation_context(session, page_scope_for(user), home=True)[
+        "navigation_nodes"
+    ]
     return templates.TemplateResponse(
         request=request,
         name="home.html",

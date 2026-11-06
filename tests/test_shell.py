@@ -5,13 +5,17 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-def test_root_renders_russian_service_shell() -> None:
-    response = TestClient(app).get("/")
+def test_root_opens_russian_login_shell_for_guests() -> None:
+    client = TestClient(app)
+    redirect = client.get("/", follow_redirects=False)
+    assert redirect.status_code == 303
+    assert redirect.headers["location"] == "/login"
+    response = client.get(redirect.headers["location"])
 
     assert response.status_code == 200
-    assert "Учебные дисциплины" in response.text
-    assert "Бакалавриат" in response.text
-    assert "КАТАЛОГ КУРСОВ" not in response.text
+    assert '<h1 id="login-title">Вход</h1>' in response.text
+    assert "data-login-form" in response.text
+    assert "Бакалавриат" not in response.text
     assert 'aria-label="Основная навигация">' in response.text
     assert 'href="/pages/new"' not in response.text
     assert '<html lang="ru">' in response.text

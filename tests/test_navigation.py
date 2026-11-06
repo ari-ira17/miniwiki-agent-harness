@@ -14,25 +14,25 @@ from tests.conftest import login_as
 
 
 def test_course_catalog_and_imported_material_contract(auth_client: TestClient) -> None:
-    guest_home = auth_client.get("/")
-    assert guest_home.status_code == 200
-    assert "Учебные дисциплины" in guest_home.text
-    assert "Бакалавриат" in guest_home.text
-    assert "Магистратура" in guest_home.text
-    assert "Элективные дисциплины" in guest_home.text
-    assert "КАТАЛОГ" not in guest_home.text
-    assert "Каталог дисциплин" not in guest_home.text
-    assert 'aria-label="Разделы дисциплин"' in guest_home.text
-    course_links = re.findall(r'href="(/wiki/disciplines/[^\"]+)"', guest_home.text)
-    assert course_links == [
-        "/wiki/disciplines/programming-workshop-bachelors-5sem",
-        "/wiki/disciplines/nlp",
-    ]
-    assert 'aria-label="Дерево страниц"' not in guest_home.text
     assert (
         auth_client.get("/wiki/disciplines/nlp", follow_redirects=False).status_code
         == 303
     )
+    login_as(auth_client, "test-reader")
+    home = auth_client.get("/")
+    assert home.status_code == 200
+    assert "Учебные дисциплины" in home.text
+    assert "Бакалавриат" in home.text
+    assert "Магистратура" in home.text
+    assert "Элективные дисциплины" in home.text
+    assert "КАТАЛОГ" not in home.text
+    assert "Каталог дисциплин" not in home.text
+    assert 'aria-label="Разделы дисциплин"' in home.text
+    course_links = re.findall(r'href="(/wiki/disciplines/[^\"]+)"', home.text)
+    assert course_links == [
+        "/wiki/disciplines/programming-workshop-bachelors-5sem",
+        "/wiki/disciplines/nlp",
+    ]
 
     course_pages = {page.path: page for page in COURSES}
     nlp = course_pages["/disciplines/nlp"]

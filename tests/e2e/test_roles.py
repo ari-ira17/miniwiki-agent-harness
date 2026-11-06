@@ -48,34 +48,12 @@ def test_guest_admin_editor_reader_and_session_invalidation() -> None:
             admin = browser.new_page(viewport={"width": 1440, "height": 1000})
             admin.on("pageerror", lambda error: page_errors.append(str(error)))
             no_script = browser.new_page(java_script_enabled=False)
-            catalog_response = admin.goto(f"{BASE_URL}/")
-            assert catalog_response is not None and catalog_response.status == 200
-            expect(
-                admin.get_by_role("heading", name="Учебные дисциплины")
-            ).to_be_visible()
-            expect(
-                admin.get_by_role(
-                    "link", name="Обработка естественного языка", exact=True
-                )
-            ).to_have_attribute("href", "/wiki/disciplines/nlp")
-            expect(
-                admin.get_by_role(
-                    "link", name="Практикум по программированию 5-й семестр", exact=True
-                )
-            ).to_have_attribute(
-                "href", "/wiki/disciplines/programming-workshop-bachelors-5sem"
-            )
-            assert admin.locator("a[href^='http']").count() == 0
-            admin.screenshot(
-                path="/tmp/miniwiki-profile2-home-desktop.png", full_page=True
-            )
-            for width in (390, 320):
-                admin.set_viewport_size({"width": width, "height": 844})
-                assert admin.evaluate("document.documentElement.scrollWidth") <= width
-                admin.screenshot(
-                    path=f"/tmp/miniwiki-profile2-home-{width}.png", full_page=True
-                )
-            admin.set_viewport_size({"width": 1440, "height": 1000})
+            login_response = admin.goto(f"{BASE_URL}/")
+            assert login_response is not None and login_response.status == 200
+            expect(admin).to_have_url(f"{BASE_URL}/login")
+            expect(admin.get_by_role("heading", name="Вход")).to_be_visible()
+            expect(admin.get_by_label("Имя пользователя")).to_be_visible()
+            admin.screenshot(path="/tmp/miniwiki-root-login.png", animations="disabled")
             guest_course = admin.goto(f"{BASE_URL}/wiki/disciplines/nlp")
             assert guest_course is not None and guest_course.status == 200
             expect(admin).to_have_url(f"{BASE_URL}/login")
@@ -110,6 +88,29 @@ def test_guest_admin_editor_reader_and_session_invalidation() -> None:
             expect(
                 admin.get_by_role("heading", name="Учебные дисциплины")
             ).to_be_visible()
+            expect(
+                admin.get_by_role(
+                    "link", name="Обработка естественного языка", exact=True
+                )
+            ).to_have_attribute("href", "/wiki/disciplines/nlp")
+            expect(
+                admin.get_by_role(
+                    "link", name="Практикум по программированию 5-й семестр", exact=True
+                )
+            ).to_have_attribute(
+                "href", "/wiki/disciplines/programming-workshop-bachelors-5sem"
+            )
+            assert admin.locator("a[href^='http']").count() == 0
+            admin.screenshot(
+                path="/tmp/miniwiki-profile2-home-desktop.png", full_page=True
+            )
+            for width in (390, 320):
+                admin.set_viewport_size({"width": width, "height": 844})
+                assert admin.evaluate("document.documentElement.scrollWidth") <= width
+                admin.screenshot(
+                    path=f"/tmp/miniwiki-profile2-home-{width}.png", full_page=True
+                )
+            admin.set_viewport_size({"width": 1440, "height": 1000})
             expect(admin.locator(".create-page-link")).to_have_attribute(
                 "href", "/pages/new"
             )
@@ -230,7 +231,7 @@ def test_guest_admin_editor_reader_and_session_invalidation() -> None:
                 "Предварительная обработка текстовых данных (2025)"
             )
             article_box = admin.locator("[data-page-article]").bounding_box()
-            assert article_box is not None and 950 <= article_box["width"] <= 1000
+            assert article_box is not None and 900 <= article_box["width"] <= 950
             sidebar_toggle = admin.locator("[data-sidebar-toggle]")
             sidebar_toggle.focus()
             sidebar_toggle.press("Enter")
@@ -240,14 +241,16 @@ def test_guest_admin_editor_reader_and_session_invalidation() -> None:
             expect(admin.locator("#wiki-sidebar")).to_be_hidden()
             collapsed_article = admin.locator("[data-page-article]").bounding_box()
             collapsed_toc = admin.locator(".toc-card").bounding_box()
-            collapsed_grid = admin.locator(".content-grid").bounding_box()
+            collapsed_grid = admin.locator(
+                "#main-content > .content-grid"
+            ).bounding_box()
             assert collapsed_article is not None
             assert collapsed_toc is not None and 200 <= collapsed_toc["width"] <= 220
             assert collapsed_grid is not None and collapsed_grid["width"] <= 1400
             assert 1000 <= collapsed_article["width"] <= 1150
             admin.set_viewport_size({"width": 1920, "height": 1280})
             wide_article = admin.locator("[data-page-article]").bounding_box()
-            wide_grid = admin.locator(".content-grid").bounding_box()
+            wide_grid = admin.locator("#main-content > .content-grid").bounding_box()
             assert wide_article is not None and wide_article["width"] <= 1150
             assert wide_grid is not None and wide_grid["width"] <= 1400
             admin.set_viewport_size({"width": 1440, "height": 1000})

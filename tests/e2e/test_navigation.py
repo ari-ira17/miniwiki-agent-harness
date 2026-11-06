@@ -91,4 +91,63 @@ def test_search_tags_tree_toc_and_responsive_layout() -> None:
             page.set_viewport_size({"width": width, "height": 844})
             assert page.evaluate("document.documentElement.scrollWidth") <= width
         page.screenshot(path="/tmp/miniwiki-navigation-mobile.png", full_page=False)
+
+        layouts = (
+            ("/", "home"),
+            ("/wiki/disciplines/programming-workshop-bachelors-5sem", "course"),
+            ("/wiki/disciplines/nlp/lectures/preprocessing", "lecture"),
+        )
+        for path, capture in layouts:
+            page.set_viewport_size({"width": 1440, "height": 900})
+            page.goto(f"{BASE_URL}{path}")
+            expect(page.locator(".page-heading h1")).to_be_visible()
+            if path.startswith("/wiki/"):
+                expect(
+                    page.get_by_text(path.removeprefix("/wiki"), exact=True)
+                ).to_have_count(0)
+            toggle = page.locator("[data-sidebar-toggle]")
+            alignment = """() => {
+                const title = document.querySelector('.page-heading h1').getBoundingClientRect();
+                const article = document.querySelector('.page-content > .article-card').getBoundingClientRect();
+                return Math.abs(title.left - article.left) < 1;
+            }"""
+            for width in (1920, 1440, 1000, 390, 320):
+                page.set_viewport_size({"width": width, "height": 900})
+                for expanded in ("true", "false"):
+                    if toggle.get_attribute("aria-expanded") != expanded:
+                        toggle.click()
+                    expect(toggle).to_have_attribute("aria-expanded", expanded)
+                    page.wait_for_function(alignment)
+                    button = toggle.bounding_box()
+                    assert button is not None
+                    assert button["x"] == (18 if width > 760 else 12)
+                    toc = page.locator(".toc-card").bounding_box()
+                    article = page.locator(
+                        ".page-content > .article-card"
+                    ).bounding_box()
+                    assert toc is not None and article is not None
+                    assert toc["width"] == (220 if width > 760 else article["width"])
+                    assert (
+                        page.evaluate("document.documentElement.scrollWidth") <= width
+                    )
+                    if width == 1440 and expanded == "true":
+                        page.screenshot(
+                            path=f"/tmp/miniwiki-heading-{capture}.png",
+                            animations="disabled",
+                        )
+                    if width == 1440 and expanded == "false" and capture == "home":
+                        page.screenshot(
+                            path="/tmp/miniwiki-heading-home-collapsed.png",
+                            animations="disabled",
+                        )
+
+        page.goto(f"{BASE_URL}/pages")
+        expect(
+            page.locator('.page-item[href*="programming-workshop-bachelors-5sem"]')
+        ).to_be_visible()
+        expect(
+            page.get_by_text(
+                "/disciplines/programming-workshop-bachelors-5sem", exact=True
+            )
+        ).to_have_count(0)
         browser.close()

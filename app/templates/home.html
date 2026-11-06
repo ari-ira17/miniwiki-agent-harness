@@ -5,9 +5,11 @@
 
 {% block page_heading %}
 <section class="page-heading" aria-labelledby="catalog-title">
-  <div class="heading-inner">
-    <h1 id="catalog-title">Учебные дисциплины</h1>
-    <p class="lead">Учебные материалы кафедры ПМиФИ ОмГТУ.</p>
+  <div class="content-grid content-heading-grid">
+    <div class="page-content content-heading-main">
+      <h1 id="catalog-title">Учебные дисциплины</h1>
+      <p class="lead">Учебные материалы кафедры ПМиФИ ОмГТУ.</p>
+    </div>
   </div>
 </section>
 {% endblock %}
@@ -23,7 +25,7 @@
   {% for section in catalog %}
   {% set section_index = loop.index %}
   <section class="catalog-section" id="{{ section['id'] }}" aria-labelledby="catalog-heading-{{ loop.index }}">
-    <div class="section-header"><div><p class="section-kicker">УЧЕБНЫЕ МАТЕРИАЛЫ</p><h2 id="catalog-heading-{{ loop.index }}">{{ section.title }}</h2></div></div>
+    <div class="section-header"><div><h2 id="catalog-heading-{{ loop.index }}">{{ section.title }}</h2></div></div>
     {% for course in section.courses %}
     {% set course_index = loop.index %}
     <section class="catalog-year" aria-labelledby="catalog-year-{{ section_index }}-{{ course_index }}">

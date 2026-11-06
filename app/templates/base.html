@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#5D5958">
     <title>{% block title %}MiniWiki{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=ui66-final">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=content-heading-grid">
   </head>
   <body class="{% block body_class %}{% endblock %}"{% if current_user is defined and current_user %} data-user-id="{{ current_user.id }}"{% endif %}>
     <header class="topbar">

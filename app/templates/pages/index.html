@@ -40,7 +40,6 @@
     <li>
       <a class="page-item" href="/wiki{{ page.path }}">
         <span class="page-item-title">{{ page.title }}</span>
-        <code>{{ page.path }}</code>
         {% if page.tags %}<span class="tag-list">{% for item in page.tag_names %}<span class="tag-chip">#{{ item }}</span>{% endfor %}</span>{% endif %}
       </a>
     </li>
