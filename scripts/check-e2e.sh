@@ -4,7 +4,11 @@ set -eu
 project="miniwiki-e2e-$$"
 
 compose() {
-    docker compose -p "$project" -f compose.yaml -f compose.e2e.yaml "$@"
+    docker compose -p "$project" -f compose.yaml -f - "$@" <<'YAML'
+services:
+  app:
+    ports: !reset []
+YAML
 }
 
 cleanup() {
