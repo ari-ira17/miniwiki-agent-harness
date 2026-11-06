@@ -18,7 +18,7 @@
       <nav class="top-nav" aria-label="Основная навигация">
         <a href="/docs">API</a>
         {% if current_user is defined and current_user and current_user.role.value in ['admin', 'editor'] %}<a class="create-page-link" href="/pages/new">Создать страницу</a>{% endif %}
-        {% if current_user is defined and current_user %}{% if current_user.role.value == 'admin' %}<a href="/users">Пользователи</a>{% endif %}<span>{{ current_user.full_name }} · {{ current_user.role.value }}</span><button type="button" data-logout>Выйти</button>{% else %}<a href="/login">Войти</a>{% endif %}
+        {% if current_user is defined and current_user %}{% if current_user.role.value == 'admin' %}<a href="/users">Пользователи</a><a href="/export">Скачать ZIP</a>{% endif %}<span>{{ current_user.full_name }} · {{ current_user.role.value }}</span><button type="button" data-logout>Выйти</button>{% else %}<a href="/login">Войти</a>{% endif %}
       </nav>
     </header>
 

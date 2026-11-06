@@ -44,3 +44,6 @@ compose cp app:/tmp/miniwiki-profile2-preprocessing-bpe.png docs/report/screensh
 compose cp app:/tmp/miniwiki-profile2-preprocessing-390.png docs/report/screenshots/06-profile-2-preprocessing-390.png
 compose cp app:/tmp/miniwiki-profile2-preprocessing-320.png docs/report/screenshots/06-profile-2-preprocessing-320.png
 compose cp app:/tmp/miniwiki-profile2-practice-desktop.png docs/report/screenshots/06-profile-2-practice-desktop.png
+compose cp app:/tmp/miniwiki-07-export-download.png docs/report/screenshots/07-export-01-download.png
+compose cp app:/tmp/miniwiki-07-export-archive.png docs/report/screenshots/07-export-02-archive.png
+compose cp app:/tmp/miniwiki-07-api-openapi.png docs/report/screenshots/07-api-01-openapi.png
